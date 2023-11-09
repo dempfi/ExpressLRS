@@ -42,7 +42,13 @@ void PWMController::setDuty(pwm_channel_t channel, uint16_t duty)
 
 void PWMController::setMicroseconds(pwm_channel_t channel, uint16_t microseconds)
 {
-    startWaveform8266(pwm_gpio[channel], microseconds, refreshInterval[channel] - microseconds);
+    if (microseconds > 0) {
+        startWaveform8266(pwm_gpio[channel], microseconds, refreshInterval[channel] - microseconds);
+    }
+    else {
+        stopWaveform8266(pwm_gpio[channel]);
+        digitalWrite(pwm_gpio[channel], LOW);
+    }
 }
 
 #endif
