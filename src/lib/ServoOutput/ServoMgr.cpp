@@ -117,7 +117,13 @@ void ServoMgr::writeMicroseconds(uint8_t ch, uint16_t valueUs)
 #if defined(PLATFORM_ESP32)
     ledcWrite(ch, map(valueUs, 0, _refreshInterval[ch], 0, (1 << _resolution_bits[ch]) - 1));
 #else
-    startWaveform8266(pin, valueUs, _refreshInterval[ch] - valueUs);
+    if (valueUs > 0) {
+        startWaveform8266(pin, valueUs, _refreshInterval[ch] - valueUs);
+    }
+    else {
+        stopWaveform8266(pin);
+        digitalWrite(pin, LOW);
+    }
 #endif
 }
 

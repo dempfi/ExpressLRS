@@ -67,11 +67,16 @@ static void servosFailsafe()
     for (unsigned ch = 0; ch < servoMgr->getOutputCnt(); ++ch)
     {
         const rx_config_pwm_t *chConfig = config.GetPwmChannel(ch);
-        // Note: Failsafe values do not respect the inverted flag, failsafes are absolute
-        uint16_t us = chConfig->val.failsafe + SERVO_FAILSAFE_MIN;
-        // Always write the failsafe position even if the servo never has been started,
-        // so all the servos go to their expected position
-        servoWrite(ch, us);
+        if (chConfig->val.failsafe == 0) {
+            servoWrite(ch, 0);
+        }
+        else {
+            // Note: Failsafe values do not respect the inverted flag, failsafe values are absolute
+            uint16_t us = chConfig->val.failsafe + SERVO_FAILSAFE_MIN;
+            // Always write the failsafe position even if the servo has never been started,
+            // so all the servos go to their expected position
+            servoWrite(ch, us);
+        }
     }
 }
 
