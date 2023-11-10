@@ -25,11 +25,12 @@ function getPwmFormData() {
     const narrow = _(`pwm_${ch}_nar`).checked ? 1 : 0;
     const failsafeField = _(`pwm_${ch}_fs`);
     let failsafe = failsafeField.value;
+    const noPulse = failsafe == 0 ? 1 : 0;
     if (failsafe > 2011) failsafe = 2011;
     if (failsafe < 988) failsafe = 988;
-    failsafeField.value = failsafe;
+    failsafeField.value = noPulse != 0 ? '0' : failsafe;
 
-    const raw = (narrow << 19) | (mode << 15) | (invert << 14) | (inChannel << 10) | (failsafe - 988);
+    const raw = (noPulse << 20) | (narrow << 19) | (mode << 15) | (invert << 14) | (inChannel << 10) | (failsafe - 988);
     // console.log(`PWM ${ch} mode=${mode} input=${inChannel} fs=${failsafe} inv=${invert} nar=${narrow} raw=${raw}`);
     outData.push(raw);
     ++ch;
@@ -58,11 +59,15 @@ function updatePwmSettings(arPwm) {
   // arPwm is an array of raw integers [49664,50688,51200]. 10 bits of failsafe position, 4 bits of input channel, 1 bit invert, 4 bits mode, 1 bit for narrow/750us
   const htmlFields = ['<div class="mui-panel"><table class="pwmtbl mui-table"><tr><th class="mui--text-center">Output</th><th>Mode</th><th>Input</th><th class="mui--text-center">Invert?</th><th class="mui--text-center">750us?</th><th>Failsafe</th></tr>'];
   arPwm.forEach((item, index) => {
-    const failsafe = (item.config & 1023) + 988; // 10 bits
+    var failsafe = (item.config & 1023) + 988; // 10 bits
     const ch = (item.config >> 10) & 15; // 4 bits
     const inv = (item.config >> 14) & 1;
     const mode = (item.config >> 15) & 15; // 4 bits
     const narrow = (item.config >> 19) & 1;
+    const noPulse = (item.config >> 20) & 1;
+    if (noPulse != 0) {
+      failsafe = 0;
+    }
     const pin = item.pin;
     const modes = ['50Hz', '60Hz', '100Hz', '160Hz', '333Hz', '400Hz', '10KHzDuty', 'On/Off'];
     if (pin == 1) {

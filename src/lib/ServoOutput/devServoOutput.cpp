@@ -67,7 +67,7 @@ static void servosFailsafe()
     for (unsigned ch = 0; ch < servoMgr->getOutputCnt(); ++ch)
     {
         const rx_config_pwm_t *chConfig = config.GetPwmChannel(ch);
-        if (chConfig->val.failsafe == 0) {
+        if (chConfig->val.noPulse) {
             servoWrite(ch, 0);
         }
         else {

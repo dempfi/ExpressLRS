@@ -750,6 +750,7 @@ static void PwmConfigV5(v5_rx_config_pwm_t const * const v5, rx_config_pwm_t * c
     current->val.inverted = v5->val.inverted;
     current->val.narrow = v5->val.narrow;
     current->val.mode = v5->val.mode;
+    current->val.noPulse = v5->val.noPulse;
     if (v5->val.mode > som400Hz)
     {
         current->val.mode += 1;
@@ -787,6 +788,7 @@ static void PwmConfigV6(v6_rx_config_pwm_t const * const v6, rx_config_pwm_t * c
     current->val.inverted = v6->val.inverted;
     current->val.narrow = v6->val.narrow;
     current->val.mode = v6->val.mode;
+    current->val.noPulse = v6->val.noPulse;
 }
 
 void RxConfig::UpgradeEepromV6()
