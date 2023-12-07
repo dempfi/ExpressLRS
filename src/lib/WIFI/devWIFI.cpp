@@ -39,6 +39,7 @@
 #include "helpers.h"
 #include "devVTXSPI.h"
 #include "devButton.h"
+#include "am32.h"
 
 #include "WebContent.h"
 
@@ -151,6 +152,8 @@ static struct {
   {"/hardware.js", "text/javascript", (uint8_t *)HARDWARE_JS, sizeof(HARDWARE_JS)},
   {"/cw.html", "text/html", (uint8_t *)CW_HTML, sizeof(CW_HTML)},
   {"/cw.js", "text/javascript", (uint8_t *)CW_JS, sizeof(CW_JS)},
+  {"/am32.html", "text/html", (uint8_t *)AM32_HTML, sizeof(AM32_HTML)},
+  {"/am32.js", "text/javascript", (uint8_t *)AM32_JS, sizeof(AM32_JS)},
 };
 
 static void WebUpdateSendContent(AsyncWebServerRequest *request)
@@ -783,6 +786,65 @@ static void HandleContinuousWave(AsyncWebServerRequest *request) {
 }
 #endif
 
+#if defined(TARGET_RX)
+static void HandleAm32(AsyncWebServerRequest *request) {
+  int pin = -1; // this is actually a PWM channel number
+  char cmd = 0;
+  int32_t addr = -1;
+  uint8_t buffer[512];
+  int datacnt = 0;
+  if (request->hasArg("pin")) {
+    pin = request->arg("pin").toInt();
+  }
+  if (request->hasArg("addr")) {
+    addr = request->arg("addr").toInt();
+  }
+  if (request->hasArg("cmd")) {
+    cmd = request->arg("cmd").c_str()[0];
+  }
+  if (request->hasArg("data")) {
+    char* datastr = (char*)request->arg("data").c_str();
+    int slen = strlen(datastr);
+    int si;
+    for (datacnt = 0, si = 0; datacnt < 512 && si < slen; datacnt++)
+    {
+      char tmp[32];
+      int ci;
+      char c;
+      bool got = false;
+      for (ci = 0; ci < 31 && si < slen; ci++, si++)
+      {
+        c = datastr[si];
+        if (c < '0' || c > '9') {
+          got = true;
+          break;
+        }
+        tmp[ci] = c;
+        tmp[ci + 1] = 0;
+      }
+      buffer[datacnt] = atoi(tmp);
+      if (c == '\0' || c == '\r' || c == '\n' || c == '&' || c == '?') {
+        break;
+      }
+    }
+  }
+  int res = am32_handleRequest(cmd, pin, addr, (uint8_t*)buffer, (int*)&datacnt);
+  String msg;
+  msg = String("{\"data\":[");
+  int i;
+  for (i = 0; i < datacnt; i++) {
+    msg += buffer[i];
+    if (i != datacnt - 1) {
+      msg += ",";
+    }
+  }
+  msg += "],\"res\":";
+  msg += res;
+  msg += "}";
+  request->send(200, "application/json", msg);
+}
+#endif
+
 static void initialize()
 {
   wifiStarted = false;
@@ -954,6 +1016,10 @@ static void startServices()
   server.on("/cw.html", WebUpdateSendContent);
   server.on("/cw.js", WebUpdateSendContent);
   server.on("/cw", HandleContinuousWave);
+  #endif
+
+  #if defined(TARGET_RX)
+  server.on("/am32", HandleAm32);
   #endif
 
   DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");

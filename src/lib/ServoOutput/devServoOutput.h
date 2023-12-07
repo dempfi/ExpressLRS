@@ -17,3 +17,5 @@ uint16_t servoOutputModeToUs(eServoOutputMode mode);
 #else
 inline void servoNewChannelsAvaliable(){};
 #endif
+
+int8_t servoChannelToPin(uint8_t ch);

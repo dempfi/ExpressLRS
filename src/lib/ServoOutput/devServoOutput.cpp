@@ -185,6 +185,14 @@ static int timeout()
     return servosUpdate(millis());
 }
 
+int8_t servoChannelToPin(uint8_t ch)
+{
+    if (ch < GPIO_PIN_PWM_OUTPUTS_COUNT) {
+        return SERVO_PINS[ch - 1];
+    }
+    return -1;
+}
+
 device_t ServoOut_device = {
     .initialize = initialize,
     .start = start,
