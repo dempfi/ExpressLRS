@@ -348,12 +348,9 @@ static void registerLuaParameters()
     }
   });
 
-  if (config.GetSerialProtocol() == PROTOCOL_SBUS || config.GetSerialProtocol() == PROTOCOL_INVERTED_SBUS || config.GetSerialProtocol() == PROTOCOL_DJI_RS_PRO)
-  {
-    registerLUAParameter(&luaFailsafeMode, [](struct luaPropertiesCommon* item, uint8_t arg){
-      config.SetFailsafeMode((eFailsafeMode)arg);
-    });
-  }
+  registerLUAParameter(&luaFailsafeMode, [](struct luaPropertiesCommon* item, uint8_t arg){
+    config.SetFailsafeMode((eFailsafeMode)arg);
+  });
 
   if (GPIO_PIN_ANT_CTRL != UNDEF_PIN)
   {
