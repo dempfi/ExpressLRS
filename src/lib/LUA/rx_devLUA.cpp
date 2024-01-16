@@ -25,7 +25,7 @@ static struct luaItem_selection luaSerialProtocol = {
 static struct luaItem_selection luaFailsafeMode = {
     {"Failsafe Mode", CRSF_TEXT_SELECTION},
     0, // value
-    "No Pulses;Last Pos",
+    "No Pulses;Last Pos;Set Pos",
     STR_EMPTYSPACE
 };
 
