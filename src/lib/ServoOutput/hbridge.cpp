@@ -5,6 +5,18 @@
 #include "PWM.h"
 #include "CRSF.h"
 
+#define HBRIDGE_DRV8244
+//#define HBRIDGE_DRV8231
+
+#if defined(HBRIDGE_DRV8244)
+#define HBRIDGE_SLEEP_VAL    1000
+#elif defined(HBRIDGE_DRV8231)
+#define HBRIDGE_SLEEP_VAL    0
+#else
+#error
+#endif
+#define HBRIDGE_FULLON_VAL    (1000 - HBRIDGE_SLEEP_VAL)
+
 static pwm_channel_t hbridge_channels[4];
 static bool has_init = false;
 static unsigned long move_time = 0;
@@ -27,10 +39,10 @@ void hbridge_failsafe(void)
     if (has_init == false) {
         return;
     }
-    PWM.setDuty(HBRIDGE_PIN_A1, 1000);
-    PWM.setDuty(HBRIDGE_PIN_A2, 1000);
-    PWM.setDuty(HBRIDGE_PIN_B1, 1000);
-    PWM.setDuty(HBRIDGE_PIN_B2, 1000);
+    PWM.setDuty(HBRIDGE_PIN_A1, HBRIDGE_SLEEP_VAL);
+    PWM.setDuty(HBRIDGE_PIN_A2, HBRIDGE_SLEEP_VAL);
+    PWM.setDuty(HBRIDGE_PIN_B1, HBRIDGE_SLEEP_VAL);
+    PWM.setDuty(HBRIDGE_PIN_B2, HBRIDGE_SLEEP_VAL);
     move_time = 0;
 }
 
@@ -46,40 +58,40 @@ void hbridge_update(unsigned long now)
 
     if (ch1 > 1500) {
         move_time = now;
-        PWM.setDuty(HBRIDGE_PIN_A1, 0);
-        PWM.setDuty(HBRIDGE_PIN_A2, fmap(ch1, CRSF_CHANNEL_VALUE_MIN, CRSF_CHANNEL_VALUE_MAX, 0, 1000));
+        PWM.setDuty(HBRIDGE_PIN_A1, HBRIDGE_FULLON_VAL);
+        PWM.setDuty(HBRIDGE_PIN_A2, fmap(ch1, CRSF_CHANNEL_VALUE_MID, CRSF_CHANNEL_VALUE_MAX, HBRIDGE_FULLON_VAL, HBRIDGE_SLEEP_VAL));
     }
     else if (ch1 < 1500) {
         move_time = now;
-        PWM.setDuty(HBRIDGE_PIN_A1, 1000);
-        PWM.setDuty(HBRIDGE_PIN_A2, fmap(ch1, CRSF_CHANNEL_VALUE_MIN, CRSF_CHANNEL_VALUE_MAX, 1000, 0));
+        PWM.setDuty(HBRIDGE_PIN_A2, HBRIDGE_FULLON_VAL);
+        PWM.setDuty(HBRIDGE_PIN_A1, fmap(ch1, CRSF_CHANNEL_VALUE_MIN, CRSF_CHANNEL_VALUE_MID, HBRIDGE_SLEEP_VAL, HBRIDGE_FULLON_VAL));
     }
     else if (stdby) {
-        PWM.setDuty(HBRIDGE_PIN_A1, 1000);
-        PWM.setDuty(HBRIDGE_PIN_A2, 1000);
+        PWM.setDuty(HBRIDGE_PIN_A1, HBRIDGE_SLEEP_VAL);
+        PWM.setDuty(HBRIDGE_PIN_A2, HBRIDGE_SLEEP_VAL);
     }
     else {
-        PWM.setDuty(HBRIDGE_PIN_A1, 0);
-        PWM.setDuty(HBRIDGE_PIN_A2, 0);
+        PWM.setDuty(HBRIDGE_PIN_A1, HBRIDGE_FULLON_VAL);
+        PWM.setDuty(HBRIDGE_PIN_A2, HBRIDGE_FULLON_VAL);
     }
 
     if (ch2 > 1500) {
         move_time = now;
-        PWM.setDuty(HBRIDGE_PIN_B1, 0);
-        PWM.setDuty(HBRIDGE_PIN_B2, fmap(ch2, CRSF_CHANNEL_VALUE_MIN, CRSF_CHANNEL_VALUE_MAX, 0, 1000));
+        PWM.setDuty(HBRIDGE_PIN_B1, HBRIDGE_FULLON_VAL);
+        PWM.setDuty(HBRIDGE_PIN_B2, fmap(ch2, CRSF_CHANNEL_VALUE_MID, CRSF_CHANNEL_VALUE_MAX, HBRIDGE_FULLON_VAL, HBRIDGE_SLEEP_VAL));
     }
     else if (ch2 < 1500) {
         move_time = now;
-        PWM.setDuty(HBRIDGE_PIN_B1, 1000);
-        PWM.setDuty(HBRIDGE_PIN_B2, fmap(ch2, CRSF_CHANNEL_VALUE_MIN, CRSF_CHANNEL_VALUE_MAX, 1000, 0));
+        PWM.setDuty(HBRIDGE_PIN_B2, HBRIDGE_FULLON_VAL);
+        PWM.setDuty(HBRIDGE_PIN_B1, fmap(ch2, CRSF_CHANNEL_VALUE_MIN, CRSF_CHANNEL_VALUE_MID, HBRIDGE_SLEEP_VAL, HBRIDGE_FULLON_VAL));
     }
     else if (stdby) {
-        PWM.setDuty(HBRIDGE_PIN_B1, 1000);
-        PWM.setDuty(HBRIDGE_PIN_B2, 1000);
+        PWM.setDuty(HBRIDGE_PIN_B1, HBRIDGE_SLEEP_VAL);
+        PWM.setDuty(HBRIDGE_PIN_B2, HBRIDGE_SLEEP_VAL);
     }
     else {
-        PWM.setDuty(HBRIDGE_PIN_B1, 0);
-        PWM.setDuty(HBRIDGE_PIN_B2, 0);
+        PWM.setDuty(HBRIDGE_PIN_B1, HBRIDGE_FULLON_VAL);
+        PWM.setDuty(HBRIDGE_PIN_B2, HBRIDGE_FULLON_VAL);
     }
 }
 
