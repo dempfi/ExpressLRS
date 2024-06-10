@@ -1,0 +1,19 @@
+{
+    "shrew": {
+        "name": "Shrew",
+        "rx_2400": {
+            "single-radio": {
+                "product_name": "Shrew 2.4GHz single radio RX",
+                "lua_name": "Shrew RX",
+                "layout_file": "Shrew.json",
+                "overlay": {
+                    "radio_dcdc": true
+                },
+                "upload_methods": ["uart", "wifi", "betaflight"],
+                "min_version": "3.3.1",
+                "platform": "esp32",
+                "firmware": "Shrew"
+            }
+        }
+    }
+}

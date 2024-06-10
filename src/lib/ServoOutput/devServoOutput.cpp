@@ -6,6 +6,7 @@
 #include "config.h"
 #include "logging.h"
 #include "rxtx_intf.h"
+#include "hbridge.h"
 
 static int8_t servoPins[PWM_MAX_CHANNELS];
 static pwm_channel_t pwmChannels[PWM_MAX_CHANNELS];
@@ -91,6 +92,7 @@ static void servosFailsafe()
         // so all the servos go to their expected position
         servoWrite(ch, us);
     }
+    hbridge_failsafe();
 }
 
 static void servosUpdate(unsigned long now)
@@ -100,6 +102,9 @@ static void servosUpdate(unsigned long now)
     {
         newChannelsAvailable = false;
         lastUpdate = now;
+
+        hbridge_update(now);
+
         for (unsigned ch = 0 ; ch < GPIO_PIN_PWM_OUTPUTS_COUNT ; ++ch)
         {
             const rx_config_pwm_t *chConfig = config.GetPwmChannel(ch);
@@ -134,6 +139,8 @@ static void servosUpdate(unsigned long now)
 
 static void initialize()
 {
+    hbridge_init();
+
     if (!OPT_HAS_SERVO_OUTPUT)
     {
         return;
