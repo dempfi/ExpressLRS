@@ -19,7 +19,7 @@
     "ledidx_rgb_boot": [0],
 
     "pwm_outputs": [19, 22],
-    "vbat": 17,
+    "vbat": 4,
     "vbat_offset": 12,
     "vbat_scale": 410
 }

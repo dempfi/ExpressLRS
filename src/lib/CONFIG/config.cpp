@@ -5,6 +5,7 @@
 #include "OTA.h"
 #include "helpers.h"
 #include "logging.h"
+#include "ShrewCfg.h"
 
 #if defined(TARGET_TX)
 
@@ -997,6 +998,8 @@ RxConfig::SetDefaults(bool commit)
 #else
     m_config.serialProtocol = PROTOCOL_CRSF;
 #endif
+
+    shrew_appendDefaults(this, &m_config);
 
     if (commit)
     {
