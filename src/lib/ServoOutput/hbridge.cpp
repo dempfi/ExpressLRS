@@ -1,11 +1,12 @@
-#if defined(GPIO_PIN_PWM_OUTPUTS)
+#if (defined(GPIO_PIN_PWM_OUTPUTS) && defined(PLATFORM_ESP32) && defined(BUILD_SHREW))
 
 #include "hbridge.h"
 #include "devServoOutput.h"
 #include "PWM.h"
 #include "CRSF.h"
 
-#define HBRIDGE_DRV8244
+// these are defined from the shrew.ini file
+//#define HBRIDGE_DRV8244
 //#define HBRIDGE_DRV8231
 
 #if defined(HBRIDGE_DRV8244)

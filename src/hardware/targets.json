@@ -1,18 +1,24 @@
 {
-    "shrew": {
+    "Shrew": {
         "name": "Shrew",
         "rx_2400": {
-            "single-radio": {
-                "product_name": "Shrew 2.4GHz single radio RX",
+            "shrew8244": {
+                "product_name": "Shrew 8244 RX",
                 "lua_name": "Shrew RX",
                 "layout_file": "Shrew.json",
-                "overlay": {
-                    "radio_dcdc": true
-                },
-                "upload_methods": ["uart", "wifi", "betaflight"],
+                "upload_methods": ["uart", "wifi"],
                 "min_version": "3.3.1",
                 "platform": "esp32",
-                "firmware": "Shrew"
+                "firmware": "Unified_Shrew8244_2400_RX"
+            },
+            "shrew8231": {
+                "product_name": "Shrew 8231 RX",
+                "lua_name": "Shrew RX",
+                "layout_file": "Shrew.json",
+                "upload_methods": ["uart", "wifi"],
+                "min_version": "3.3.1",
+                "platform": "esp32",
+                "firmware": "Unified_Shrew8231_2400_RX"
             }
         }
     }

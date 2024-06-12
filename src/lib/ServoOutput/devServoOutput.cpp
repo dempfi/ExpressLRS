@@ -6,7 +6,9 @@
 #include "config.h"
 #include "logging.h"
 #include "rxtx_intf.h"
+#ifdef BUILD_SHREW
 #include "hbridge.h"
+#endif
 
 static int8_t servoPins[PWM_MAX_CHANNELS];
 static pwm_channel_t pwmChannels[PWM_MAX_CHANNELS];
@@ -92,7 +94,9 @@ static void servosFailsafe()
         // so all the servos go to their expected position
         servoWrite(ch, us);
     }
+    #ifdef BUILD_SHREW
     hbridge_failsafe();
+    #endif
 }
 
 static void servosUpdate(unsigned long now)
@@ -103,7 +107,9 @@ static void servosUpdate(unsigned long now)
         newChannelsAvailable = false;
         lastUpdate = now;
 
+        #ifdef BUILD_SHREW
         hbridge_update(now);
+        #endif
 
         for (unsigned ch = 0 ; ch < GPIO_PIN_PWM_OUTPUTS_COUNT ; ++ch)
         {
@@ -139,7 +145,9 @@ static void servosUpdate(unsigned long now)
 
 static void initialize()
 {
+    #ifdef BUILD_SHREW
     hbridge_init();
+    #endif
 
     if (!OPT_HAS_SERVO_OUTPUT)
     {
