@@ -47,6 +47,11 @@ void hbridge_failsafe(void)
     move_time = 0;
 }
 
+void hbridge_setDuty(int ch, signed int data)
+{
+    PWM.setDuty(ch, data < 0 ? 0 : (data > 1000 ? 1000 : data));
+}
+
 void hbridge_update(unsigned long now)
 {
     unsigned ch1 = ChannelData[0];
@@ -59,13 +64,13 @@ void hbridge_update(unsigned long now)
 
     if (ch1 > 1500) {
         move_time = now;
+        hbridge_setDuty(HBRIDGE_PIN_A2, fmap(ch1, CRSF_CHANNEL_VALUE_MID, CRSF_CHANNEL_VALUE_MAX, HBRIDGE_FULLON_VAL, HBRIDGE_SLEEP_VAL));
         PWM.setDuty(HBRIDGE_PIN_A1, HBRIDGE_FULLON_VAL);
-        PWM.setDuty(HBRIDGE_PIN_A2, fmap(ch1, CRSF_CHANNEL_VALUE_MID, CRSF_CHANNEL_VALUE_MAX, HBRIDGE_FULLON_VAL, HBRIDGE_SLEEP_VAL));
     }
     else if (ch1 < 1500) {
         move_time = now;
+        hbridge_setDuty(HBRIDGE_PIN_A1, fmap(ch1, CRSF_CHANNEL_VALUE_MIN, CRSF_CHANNEL_VALUE_MID, HBRIDGE_SLEEP_VAL, HBRIDGE_FULLON_VAL));
         PWM.setDuty(HBRIDGE_PIN_A2, HBRIDGE_FULLON_VAL);
-        PWM.setDuty(HBRIDGE_PIN_A1, fmap(ch1, CRSF_CHANNEL_VALUE_MIN, CRSF_CHANNEL_VALUE_MID, HBRIDGE_SLEEP_VAL, HBRIDGE_FULLON_VAL));
     }
     else if (stdby) {
         PWM.setDuty(HBRIDGE_PIN_A1, HBRIDGE_SLEEP_VAL);
@@ -78,13 +83,13 @@ void hbridge_update(unsigned long now)
 
     if (ch2 > 1500) {
         move_time = now;
+        hbridge_setDuty(HBRIDGE_PIN_B2, fmap(ch2, CRSF_CHANNEL_VALUE_MID, CRSF_CHANNEL_VALUE_MAX, HBRIDGE_FULLON_VAL, HBRIDGE_SLEEP_VAL));
         PWM.setDuty(HBRIDGE_PIN_B1, HBRIDGE_FULLON_VAL);
-        PWM.setDuty(HBRIDGE_PIN_B2, fmap(ch2, CRSF_CHANNEL_VALUE_MID, CRSF_CHANNEL_VALUE_MAX, HBRIDGE_FULLON_VAL, HBRIDGE_SLEEP_VAL));
     }
     else if (ch2 < 1500) {
         move_time = now;
+        hbridge_setDuty(HBRIDGE_PIN_B1, fmap(ch2, CRSF_CHANNEL_VALUE_MIN, CRSF_CHANNEL_VALUE_MID, HBRIDGE_SLEEP_VAL, HBRIDGE_FULLON_VAL));
         PWM.setDuty(HBRIDGE_PIN_B2, HBRIDGE_FULLON_VAL);
-        PWM.setDuty(HBRIDGE_PIN_B1, fmap(ch2, CRSF_CHANNEL_VALUE_MIN, CRSF_CHANNEL_VALUE_MID, HBRIDGE_SLEEP_VAL, HBRIDGE_FULLON_VAL));
     }
     else if (stdby) {
         PWM.setDuty(HBRIDGE_PIN_B1, HBRIDGE_SLEEP_VAL);
