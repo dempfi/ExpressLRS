@@ -123,12 +123,25 @@ def appendConfiguration(source, target, env):
             platform = 'esp32-s3'
     else:
         platform = 'esp8285'
-    print(platform)
 
     defines = json.JSONEncoder().encode(env['OPTIONS_JSON'])
 
     with open(str(target[0]), "r+b") as firmware_file:
         doConfiguration(firmware_file, defines, config, moduletype, frequency, platform, device_name)
+
+    import os, shutil
+    fw_path = os.path.abspath(firmware_file.name)
+    fw_dir = os.path.dirname(fw_path)
+    fw_justname = os.path.splitext(os.path.basename(fw_path))[0]
+    fw_dirname = os.path.basename(fw_dir)
+    fw_newname = fw_dirname
+    if "Shrew" in fw_newname:
+        fw_newname = fw_newname[fw_newname.index("Shrew"):]
+        fw_newname = fw_newname[:fw_newname.index("_")]
+    firmware_file.close()
+    fw_newpath = os.path.join(fw_dir, fw_justname + "_" + fw_newname + ".bin")
+    shutil.copy(fw_path, fw_newpath)
+    print("copied firmware file \"%s\" -> \"%s\"" % (firmware_file.name, fw_newpath))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Configure Unified Firmware")
