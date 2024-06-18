@@ -1,4 +1,4 @@
-#if (defined(GPIO_PIN_PWM_OUTPUTS) && defined(PLATFORM_ESP32) && defined(BUILD_SHREW))
+#if (defined(GPIO_PIN_PWM_OUTPUTS) && defined(PLATFORM_ESP32) && defined(BUILD_SHREW_HBRIDGE))
 
 #include "hbridge.h"
 #include "devServoOutput.h"

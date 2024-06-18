@@ -1,0 +1,89 @@
+@@require(PLATFORM, VERSION, isTX, sx127x)
+<!DOCTYPE HTML>
+<html lang="en">
+
+<head>
+    <title>Shrew Web Control</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="elrs.css" />
+    <script src="shrew.js"></script>
+    <script src="joy.js"></script>
+    <style>
+        .hidden {display: none;}
+        .joy-row
+        {
+            display: flex;
+            justify-content: center;
+        }
+        .joy-column
+        {
+            flex: 0 0 auto; /* Do not grow or shrink */
+        }
+        .square-container {
+            display: flex;
+            flex-wrap: wrap;
+            height: 25px;
+        }
+        .square {
+            width: 20px;
+            height: 20px;
+            border: 1px solid black; /* Default border color */
+            margin: -1px; /* Overlap borders */
+            padding: 2px 2px 2px 2px;
+        }
+        .dbggrid-container {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr 2fr;
+            width: 100%;
+            gap: 1px; /* Creates the grid gap which will act as the border */
+        }
+        .dbggrid-cell {
+            background-color: white; /* Background color for the cells */
+            min-height: 20px; /* Minimum height for each cell */
+            border: 1px solid gray; /* 1 pixel solid gray border */
+            padding-left: 0.5em;
+            padding-right: 0.5em;
+        }
+        .right-aligned {
+            text-align: right;
+        }
+    </style>
+</head>
+
+<body onload="shrew_onLoad()">
+
+<div id="joystick_area" class="">
+    <div class="joy-row">
+        <div class="joy-column">
+            <div id="joy1Div" style="width:200px;height:200px;margin:50px"></div>
+        </div>
+        <div class="joy-column" id="second_column">
+            <div id="joy2Div" style="width:200px;height:200px;margin:50px"></div>
+        </div>
+    </div>
+    <div class="joy-row">
+        <div class="slidecontainer joy-column">
+            <input type="range" min="0" max="100" value="50" class="slider" id="slider_1">
+        </div>
+        <div class="slidecontainer joy-column">
+            <input type="range" min="0" max="100" value="50" class="slider" id="slider_2">
+        </div>
+    </div>
+</div>
+<div id="gamepad_area" class="hidden">
+    <div id="gamepad_id"></div>
+    <div id="gamepad_buttons" class="square-container"></div>
+    <div id="gamepad_axis" class="square-container"></div>
+</div>
+<div><fieldset><legend id="btn_debug" onclick="showHideDebug()">Debug (click to expand/hide)</legend><div id="debug_hider"><div id="debug_area" class="dbggrid-container"></div></div></fieldset></div>
+<div><fieldset><legend id="btn_config" onclick="showHideConfig()">Config (click to expand/hide)</legend><div id="div_config"><form id="config_data_form">
+<div><!-- <input type="button" value="Load" onclick="configLoad()" /> --><input type="button" value="Save" onclick="configSave()" /></div>
+<fieldset><legend>Mixer:</legend>
+<textarea id="txt_mixer" name="txt_mixer" oninput="mixer_onChange()" style="min-height: 100pt; width: 100%;">
+</textarea>
+</fieldset>
+</form></div></fieldset></div>
+<div id="put_mixer_here" class="hidden"></div>
+</body>
+</html>

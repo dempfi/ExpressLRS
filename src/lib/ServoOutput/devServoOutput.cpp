@@ -6,7 +6,7 @@
 #include "config.h"
 #include "logging.h"
 #include "rxtx_intf.h"
-#ifdef BUILD_SHREW
+#ifdef BUILD_SHREW_HBRIDGE
 #include "hbridge.h"
 #endif
 
@@ -94,7 +94,7 @@ static void servosFailsafe()
         // so all the servos go to their expected position
         servoWrite(ch, us);
     }
-    #ifdef BUILD_SHREW
+    #ifdef BUILD_SHREW_HBRIDGE
     hbridge_failsafe();
     #endif
 }
@@ -107,7 +107,7 @@ static void servosUpdate(unsigned long now)
         newChannelsAvailable = false;
         lastUpdate = now;
 
-        #ifdef BUILD_SHREW
+        #ifdef BUILD_SHREW_HBRIDGE
         hbridge_update(now);
         #endif
 
@@ -145,7 +145,7 @@ static void servosUpdate(unsigned long now)
 
 static void initialize()
 {
-    #ifdef BUILD_SHREW
+    #ifdef BUILD_SHREW_HBRIDGE
     hbridge_init();
     #endif
 

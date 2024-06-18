@@ -77,6 +77,10 @@ StubbornReceiver TelemetryReceiver;
 StubbornSender MspSender;
 uint8_t CRSFinBuffer[CRSF_MAX_PACKET_LEN+1];
 
+#ifdef BUILD_SHREW_WIFI
+extern uint32_t shrew_getLastDataTime();
+#endif
+
 device_affinity_t ui_devices[] = {
   {&CRSF_device, 1},
 #ifdef HAS_LED
@@ -652,7 +656,12 @@ void ICACHE_RAM_ATTR timerCallback()
   // *Do* send data if a packet has never been received from handset and the timer is running
   //     this is the case when bench testing and TXing without a handset
   uint32_t lastRcData = CRSF::GetRCdataLastRecv();
-  if (!lastRcData || (micros() - lastRcData < 1000000))
+  uint32_t microsNow = micros(); 
+  if (!lastRcData || (microsNow - lastRcData < 1000000)
+    #ifdef BUILD_SHREW_WIFI
+       || (microsNow - shrew_getLastDataTime() < 1000000)
+    #endif
+    )
   {
     busyTransmitting = true;
     SendRCdataToRF();

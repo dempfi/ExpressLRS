@@ -2,6 +2,10 @@
 
 #if defined(PLATFORM_ESP8266) || defined(PLATFORM_ESP32)
 
+#ifdef BUILD_SHREW_WIFI
+#include "ShrewWifi.h"
+#endif
+
 #include <AsyncJson.h>
 #include <ArduinoJson.h>
 #if defined(PLATFORM_ESP8266)
@@ -158,9 +162,16 @@ static struct {
   {"/hardware.js", "text/javascript", (uint8_t *)HARDWARE_JS, sizeof(HARDWARE_JS)},
   {"/cw.html", "text/html", (uint8_t *)CW_HTML, sizeof(CW_HTML)},
   {"/cw.js", "text/javascript", (uint8_t *)CW_JS, sizeof(CW_JS)},
+
+  #ifdef BUILD_SHREW_WIFI
+  {"/shrew.html", "text/html", (uint8_t *)SHREW_HTML, sizeof(SHREW_HTML)},
+  {"/shrew.js", "text/javascript", (uint8_t *)SHREW_JS, sizeof(SHREW_JS)},
+  {"/joy.js", "text/javascript", (uint8_t *)JOY_JS, sizeof(JOY_JS)},
+  #endif
 };
 
-static void WebUpdateSendContent(AsyncWebServerRequest *request)
+//static
+void WebUpdateSendContent(AsyncWebServerRequest *request)
 {
   for (size_t i=0 ; i<ARRAY_SIZE(files) ; i++) {
     if (request->url().equals(files[i].url)) {
@@ -1020,6 +1031,10 @@ static void startServices()
     server.addHandler(new AsyncCallbackJsonWebHandler("/import", ImportConfiguration, 32768U));
   #endif
 
+#ifdef BUILD_SHREW_WIFI
+  shrew_setupServer(&server);
+#endif
+
   server.onNotFound(WebUpdateHandleNotFound);
 
   server.begin();
@@ -1044,6 +1059,10 @@ static void HandleWebUpdate()
 {
   unsigned long now = millis();
   wl_status_t status = WiFi.status();
+
+#ifdef BUILD_SHREW_WIFI
+  shrew_handleWebUpdate(now);
+#endif
 
   if (status != laststatus && wifiMode == WIFI_STA) {
     DBGLN("WiFi status %d", status);
