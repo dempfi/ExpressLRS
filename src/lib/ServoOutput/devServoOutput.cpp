@@ -228,6 +228,7 @@ static int start()
         }
 #endif
     }
+    //shrew_markServosInitialized(true);
     // set servo outputs to failsafe position on start in case they want to play silly buggers!
     servosFailsafe();
     return DURATION_NEVER;
@@ -235,6 +236,9 @@ static int start()
 
 static int event()
 {
+    //if (shrew_isActive()) {
+    //    return DURATION_IMMEDIATELY;
+    //}
     if (!OPT_HAS_SERVO_OUTPUT || connectionState == disconnected)
     {
         // Disconnected should come after failsafe on the RX,
@@ -243,6 +247,7 @@ static int event()
     }
     else if (connectionState == wifiUpdate)
     {
+#ifndef BUILD_SHREW_WIFI
         for (unsigned ch = 0; ch < GPIO_PIN_PWM_OUTPUTS_COUNT; ++ch)
         {
             if (pwmChannels[ch] != -1)
@@ -259,6 +264,8 @@ static int event()
 #endif
             servoPins[ch] = UNDEF_PIN;
         }
+        //shrew_markServosInitialized(false);
+#endif
         return DURATION_NEVER;
     }
     return DURATION_IMMEDIATELY;

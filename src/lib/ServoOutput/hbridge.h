@@ -11,3 +11,6 @@
 void hbridge_init(void);
 void hbridge_failsafe(void);
 void hbridge_update(unsigned long now);
+
+void shrew_markServosInitialized(bool);
+bool shrew_isActive(void);

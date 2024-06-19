@@ -52,7 +52,9 @@
 </head>
 
 <body onload="shrew_onLoad()">
-
+<div><h2>Shrew Web Control</h2></div>
+<div id="msg_wifidisconnected" class="hidden">Wi-Fi DISCONNECTED</div>
+<div id="msg_temeletry" class="hidden">&nbsp;</div>
 <div id="joystick_area" class="">
     <div class="joy-row">
         <div class="joy-column">
@@ -66,12 +68,14 @@
         <div class="slidecontainer joy-column">
             <input type="range" min="0" max="100" value="50" class="slider" id="slider_1">
         </div>
+        <div class="slidecontainer joy-column" style="min-width:50px;>&nbsp;&nbsp;&nbsp;&nbsp;</div>
         <div class="slidecontainer joy-column">
             <input type="range" min="0" max="100" value="50" class="slider" id="slider_2">
         </div>
     </div>
 </div>
 <div id="gamepad_area" class="hidden">
+    <div id="msg_gamepaddisconnected" class="hidden">GAMEPAD DISCONNECTED</div>
     <div id="gamepad_id"></div>
     <div id="gamepad_buttons" class="square-container"></div>
     <div id="gamepad_axis" class="square-container"></div>
@@ -84,6 +88,5 @@
 </textarea>
 </fieldset>
 </form></div></fieldset></div>
-<div id="put_mixer_here" class="hidden"></div>
 </body>
 </html>

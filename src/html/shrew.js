@@ -25,31 +25,17 @@ function shrew_onLoad() {
     Slider2 = document.getElementById("slider_2");
     document.getElementById('joystick_area').classList.add("hidden");
     createDebugGrid();
-    configLoad();
-    websock_init();
+    initWakeLock();
     setupGamepadEvents();
-    const requestWakeLock = async () => {
-        try {
-            wakeLock = await navigator.wakeLock.request('screen');
-            console.log('Screen wake lock is active');
-            wakeLock.addEventListener('release', () => {
-                console.log('Screen wake lock was released');
-            });
-        } catch (err) {
-            console.error(`${err.name}, ${err.message}`);
-        }
-    };
-    document.addEventListener('visibilitychange', async () => {
-        if (wakeLock !== null && document.visibilityState === 'visible') {
-            await requestWakeLock();
-        }
+    configLoad(function () {
+        websock_init();
+        shrew_task_timer = requestAnimationFrame(shrew_task);
     });
-    requestWakeLock();
-    shrew_task_timer = requestAnimationFrame(shrew_task);
 }
 
 function shrew_task()
 {
+    var currentTime = Date.now();
     updateMixerFunction();
     if (MyGamepad == null) {
         updateGamepadState();
@@ -58,8 +44,17 @@ function shrew_task()
     }
     var tosend = false;
     try {
-        var contents = "function mixer_run(){\r\n";
-        contents += mixer_prev;
+        let mixer_custom = mixer_prev;
+        if (mixer_custom.trim().length <= 0) {
+            if (MyGamepad == null) {
+                mixer_custom = "return simpleTankMix({});";
+            }
+            else {
+                mixer_custom = "return simpleTankMix({mode:4});";
+            }
+        }
+        let contents = "function mixer_run(){\r\n";
+        contents += mixer_custom;
         contents += "\r\n}";
         eval(contents);
         if (typeof mixer_run === 'function') {
@@ -71,50 +66,78 @@ function shrew_task()
     fillDebugCells();
     if (ws_checkConnection())
     {
+        document.getElementById("msg_wifidisconnected").classList.add("hidden");
         if (ws.bufferedAmount === 0)
         {
+            var timedout = ((currentTime - ws_timestamp) >= 100);
+            if (timedout) {
+                tosend = true;
+            }
             if (typeof tosend === 'boolean' && tosend === true) {
                 for (let i = 0; i < channel.length; i++) {
                     var x = clamp(channel[i], 0, 2048);
                     channel16[i] = Math.round(x);
                 }
-                var buffer = new ArrayBuffer(channel.length * 2);
+                var buffer = new ArrayBuffer((channel.length * 2) + 4);
                 var dataview = new DataView(buffer);
+                var headstr = gamepadIsDisconnected() ? "crsf" : "CRSF";
+                for (let i = 0; i < headstr.length; i++) {
+                    dataview.setUint8(i, headstr.charCodeAt(i));
+                }
                 channel16.forEach(function(x, idx) {
-                    dataview.setUint16(idx * 2, x, true); // true for little-endian
+                    dataview.setUint16((idx * 2) + 4, x, true); // true for little-endian
                 });
                 ws.send(buffer);
             }
         }
     }
+    else {
+        document.getElementById("msg_wifidisconnected").classList.remove("hidden");
+    }
+    if (gamepadIsDisconnected()) {
+        document.getElementById("msg_gamepaddisconnected").classList.remove("hidden");
+    }
+    else {
+        document.getElementById("msg_gamepaddisconnected").classList.add("hidden");
+    }
     shrew_task_timer = requestAnimationFrame(shrew_task);
 }
 
 function updateMixerFunction() {
-    if (mixer_dirty)
+    var secondColumn = document.getElementById('second_column');
+    var touchArea = document.getElementById('joystick_area');
+    var gamepadArea = document.getElementById('gamepad_area');
+    var nothing_shown = true;
+    if (mixer_prev.includes("MyGamepad")) {
+        gamepadArea.classList.remove('hidden');
+        nothing_shown = false;
+    }
+    else {
+        gamepadArea.classList.add('hidden');
+    }
+    if (mixer_prev.includes("Joy1") || mixer_prev.includes("Joy2")) {
+        touchArea.classList.remove('hidden');
+        nothing_shown = false;
+    }
+    else {
+        touchArea.classList.add('hidden');
+    }
+    if (mixer_prev.includes("Joy2")) {
+        secondColumn.classList.remove('hidden');
+        nothing_shown = false;
+    }
+    else {
+        secondColumn.classList.add('hidden');
+    }
+    if (nothing_shown)
     {
-        mixer_dirty = false;
-        var secondColumn = document.getElementById('second_column');
-        var touchArea = document.getElementById('joystick_area');
-        var gamepadArea = document.getElementById('gamepad_area');
-        if (mixer_prev.includes("MyGamepad")) {
+        if (MyGamepad != null) {
             gamepadArea.classList.remove('hidden');
         }
         else {
-            gamepadArea.classList.add('hidden');
-        }
-        if (mixer_prev.includes("Joy1") || mixer_prev.includes("Joy2")) {
             touchArea.classList.remove('hidden');
         }
-        else {
-            touchArea.classList.add('hidden');
-        }
-        if (mixer_prev.includes("Joy2")) {
-            secondColumn.classList.remove('hidden');
-        }
-        else {
-            secondColumn.classList.add('hidden');
-        }
+        mixer_dirty = true;
     }
 }
 
@@ -122,8 +145,10 @@ var ws;
 var ws_reconnect_timer = null;
 var ws_timestamp = Date.now();
 function websock_init() {
+    ws_reconnect_timer = null;
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
     ws = new WebSocket(`${protocol}://${window.location.host}/shrew_ws`);
+    ws_timestamp = Date.now();
     var timeout = setTimeout(function() {
         if (ws.readyState !== WebSocket.OPEN) {
             console.log('Connection timeout. Closing WebSocket.');
@@ -133,6 +158,7 @@ function websock_init() {
     }, 3000);
     ws.onopen = function() {
         clearTimeout(timeout);
+        ws_timestamp = Date.now();
         console.log('WebSocket connection established');
     };
     ws.onmessage = function(event) {
@@ -150,22 +176,23 @@ function websock_init() {
 }
 
 function ws_primeReconnect() {
+    if (ws_reconnect_timer != null) {
+        return;
+    }
     clearTimeout(ws_reconnect_timer);
     ws_reconnect_timer = setTimeout(function() {
+        ws_reconnect_timer = null;
         websock_init();
     }, 1000);
 }
 
 function ws_checkConnection() {
+    var currentTime = Date.now();
+    var timedout = ((currentTime - ws_timestamp) >= 1000);
     if (ws.readyState !== WebSocket.OPEN) {
-        console.log('WebSocket connection lost');
-        ws.close();
-        ws_primeReconnect();
         return false;
     }
     else {
-        var currentTime = Date.now();
-        var timedout = ((currentTime - ws_timestamp) >= 1000);
         if (timedout) {
             console.log('WebSocket no response, closing');
             ws.close();
@@ -173,12 +200,17 @@ function ws_checkConnection() {
             return false;
         }
     }
-    return true;
+    return ws.readyState === WebSocket.OPEN;
 }
 
-function configLoad() {
+var final_funct = null;
+var config_get_retry = 3;
+function configLoad(f) {
+    if (typeof f === 'function') {
+        final_funct = f;
+    }
     var xhr = new XMLHttpRequest();
-    xhr.open('GET', "shrew_cfgload", true);
+    xhr.open('GET', "/shrewcfgload", true);
     xhr.onreadystatechange = function() {
         if (xhr.readyState === XMLHttpRequest.DONE) {
             if (xhr.status === 200) {
@@ -188,12 +220,24 @@ function configLoad() {
                 } catch (e) {
                     console.error('Could not parse JSON data:', e);
                 }
+                if (typeof final_funct === 'function') {
+                    final_funct();
+                }
             } else {
                 console.error('Request failed with status:', xhr.status);
-                setTimeout(configLoad, 1000);
+                config_get_retry -= 1;
+                if (config_get_retry > 0) {
+                    setTimeout(configLoad, 1000);
+                }
+                else {
+                    if (typeof final_funct === 'function') {
+                        final_funct();
+                    }
+                }
             }
         }
     };
+    xhr.send();
 }
 
 function configSave() {
@@ -212,12 +256,13 @@ function configSave() {
   });
   let formJson = JSON.stringify(object);
   var xhr = new XMLHttpRequest();
-  xhr.open('POST', 'shrew_cfgsave', true);
+  xhr.open('POST', '/shrewcfgsave', true);
+  xhr.setRequestHeader("Content-Type", "application/json");
   xhr.onload = function () {
     if (xhr.status === 200) {
       console.log('btn_configSave: form submitted successfully');
     } else {
-      console.error('btn_configSave: an error occurred!');
+      console.error('btn_configSave: an error occurred, status: ' + xhr.status.toString());
     }
   };
   xhr.send(formJson);
@@ -256,20 +301,6 @@ function showHideConfig() {
 function showHideDebug() {
     var div = document.getElementById('debug_hider');
     div.classList.toggle('hidden');
-}
-
-function clamp(value, limit1, limit2) {
-    var min = Math.min(limit1, limit2);
-    var max = Math.max(limit1, limit2);
-    return Math.min(Math.max(value, min), max);
-}
-
-function mapRange(value, low1, high1, low2, high2, limit) {
-    var x = low2 + (high2 - low2) * (value - low1) / (high1 - low1);
-    if (limit) {
-        x = clamp(x, low2, high2);
-    }
-    return x;
 }
 
 var activeGamepadIndex = null;
@@ -370,6 +401,13 @@ function setupGamepadEvents() {
     });
 }
 
+function gamepadIsDisconnected() {
+    if (MyGamepad == null && activeGamepadId != null) {
+        return true;
+    }
+    return false;
+}
+
 function createDebugGrid() {
     const container = document.getElementById('debug_area');
     container.style.display = 'grid';
@@ -411,12 +449,178 @@ function createDebugGrid() {
 function fillDebugCells() {
     for (let i = 0; i < channel.length; i++) {
         var cell = document.getElementById(`dbgcell_ch_val_${i}`);
-        cell.innerHTML = channel[i].toString();
+        cell.innerHTML = channel[i].toFixed(1);
     }
     for (let i = 0; i < variable.length; i++) {
         var cell = document.getElementById(`dbgcell_var_val_${i}`);
-        cell.innerHTML = variable[i].toString();
+        cell.innerHTML = variable[i].toFixed(1);
     }
 }
 
-//@@include("libs.js")
+function initWakeLock() {
+    const requestWakeLock = async () => {
+        try {
+            wakeLock = await navigator.wakeLock.request('screen');
+            console.log('Screen wake lock is active');
+            wakeLock.addEventListener('release', () => {
+                console.log('Screen wake lock was released');
+            });
+        } catch (err) {
+            console.error(`${err.name}, ${err.message}`);
+        }
+        try {
+            //const anyNav: any = navigator;
+            if ('wakeLock' in navigator) {
+                navigator["wakeLock"].request("screen")
+            }
+        } catch (err) {
+            console.error(`${err.name}, ${err.message}`);
+        }
+    };
+    document.addEventListener('visibilitychange', async () => {
+        if (wakeLock !== null && document.visibilityState === 'visible') {
+            await requestWakeLock();
+        }
+    });
+    requestWakeLock();
+}
+
+function clamp(value, limit1, limit2) {
+    var min = Math.min(limit1, limit2);
+    var max = Math.max(limit1, limit2);
+    return Math.min(Math.max(value, min), max);
+}
+
+function mapRange(value, low1, high1, low2, high2, limit) {
+    var x = low2 + (high2 - low2) * (value - low1) / (high1 - low1);
+    if (limit) {
+        x = clamp(x, low2, high2);
+    }
+    return x;
+}
+
+function applyDeadzone(x, dz) {
+    if (dz >= 0)
+    {
+        if (x < dz && x > dz) {
+            return 0;
+        }
+        else if (x >= 0) {
+            return mapRange(x, dz, 1, 0, 1, true);
+        }
+        else {
+            return mapRange(x, -dz, -1, 0, -1, true);
+        }
+    }
+    else
+    {
+        dz = -dz;
+        if (x > 0 && x != 0) {
+            return mapRange(x, 0, 1, dz, 1, true);
+        }
+        else if (x < 0 && x != 0) {
+            return mapRange(x, -1, 0, -1, -dz, true);
+        }
+        else {
+            return 0;
+        }
+    }
+}
+
+function applyExpo(x, ex) {
+    var absx = Math.abs(x);
+    var absy = absx * Math.exp(ex * (absx - 1));
+    return absy * ((x >= 0) ? 1 : -1);
+}
+
+function scaleToCRSF(x, s) {
+    return mapRange(x * s, -1, 1, CRSF_CHANNEL_VALUE_MIN, CRSF_CHANNEL_VALUE_MAX, true);
+}
+
+function arcadeTankMix(t, s) {
+    // 1. Get X and Y from the Joystick, do whatever scaling and calibrating you need to do based on your hardware.
+    // 2. Invert X
+    // 3. Calculate R+L (Call it V): V = (100-ABS(X)) * (Y/100) + Y
+    // 4. Calculate R-L (Call it W): W = (100-ABS(Y)) * (X/100) + X
+    // 5. Calculate R: R = (V+W) / 2
+    // 6. Calculate L: L = (V-W) / 2
+    // 7. Do any scaling on R and L your hardware may require.
+    // 8. Send those values to your Robot.
+    // 9. Go back to 1.
+
+    let invs = -s;
+    let v = ((1 - Math.abs(s)) * t) + t;
+    let w = ((1 - Math.abs(t)) * invs) + invs;
+    let r = (v + w) / 2;
+    let l = (v - w) / 2;
+    return [clamp(l, -1, 1), clamp(r, -1, 1)];
+}
+
+function simpleTankMix({mode = 0, thr_scale = 1, str_scale = 1, thr_dz = 0.05, str_dz = 0.05, thr_exp = 0, str_exp = 0, thr_trim = 0, str_trim = 0, left_scale = 1, right_scale = 1, left_dz = 0, right_dz = 0, left_exp = 0, right_exp = 0, left_trim = 0, right_trim = 0}) {
+    let ret = true;
+    let t = 0;
+    let s = 0;
+    if (typeof mode === 'function') {
+        let ts = mode();
+        t = ts[0];
+        s = ts[1];
+    }
+    else if (mode == 0) {
+        t = Joy1.GetY();
+        s = Joy1.GetX();
+    }
+    else if (mode == 1) {
+        t = Joy1.GetY();
+        s = Joy2.GetX();
+    }
+    else if (mode == 2) {
+        t = Joy2.GetY();
+        s = Joy1.GetX();
+    }
+    else
+    {
+        if (MyGamepad == null) {
+            ret = false;
+        }
+        else if (mode == 3) {
+            t = -MyGamepad.axes[1];
+            s = MyGamepad.axes[0];
+        }
+        else if (mode == 4) {
+            t = -MyGamepad.axes[3];
+            s = MyGamepad.axes[2];
+        }
+        else if (mode == 5) {
+            t = -MyGamepad.axes[1];
+            s = MyGamepad.axes[2];
+        }
+        else if (mode == 6) {
+            t = -MyGamepad.axes[3];
+            s = MyGamepad.axes[0];
+        }
+        else if (mode == 7) {
+            t = MyGamepad.buttons[7].value - MyGamepad.buttons[6].value;
+            s = (Math.abs(MyGamepad.axes[0]) > Math.abs(MyGamepad.axes[2])) ? MyGamepad.axes[0] : MyGamepad.axes[2];
+        }
+        else if (mode == 8) {
+            t = MyGamepad.buttons[6].value - MyGamepad.buttons[7].value;
+            s = (Math.abs(MyGamepad.axes[0]) > Math.abs(MyGamepad.axes[2])) ? MyGamepad.axes[0] : MyGamepad.axes[2];
+        }
+    }
+    t += thr_trim;
+    s += str_trim;
+    t = applyDeadzone(t, thr_dz);
+    s = applyDeadzone(s, str_dz);
+    t = applyExpo(t, thr_exp);
+    s = applyExpo(s, str_exp);
+    t *= thr_scale;
+    s *= str_scale;
+    let lr = arcadeTankMix(t, s); 
+    lr[0] = applyExpo(lr[0], left_exp)
+    lr[1] = applyExpo(lr[1], right_exp)
+    lr[0] = applyDeadzone(lr[0], left_exp)
+    lr[1] = applyDeadzone(lr[1], right_exp)
+    channel[0] = scaleToCRSF(lr[0] + left_trim, left_scale);
+    channel[1] = scaleToCRSF(lr[1] + right_trim, right_scale);
+    return ret;
+}
