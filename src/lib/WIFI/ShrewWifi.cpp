@@ -21,6 +21,8 @@
 #include <SPIFFS.h>
 #endif
 
+#include "FHSS.h"
+
 AsyncWebSocket ws("/shrew_ws");
 
 static bool has_inited = false;
@@ -69,8 +71,10 @@ static void OnWsEvent(AsyncWebSocket* server, AsyncWebSocketClient* client, AwsE
             if ((now - last_ws_time) >= 100 && client->canSend()) {
                 #if defined(TARGET_TX)
                 if ((now - TLMpacketReported) <= 1000) {
-                    // TODO: CRSF::LinkStatistics
-                    client->text("OK");
+                    client->printf("OK:%d,%d,%d",
+                        (CRSF::LinkStatistics.uplink_RSSI_2 != 0 && CRSF::LinkStatistics.uplink_RSSI_2 < CRSF::LinkStatistics.uplink_RSSI_1) ? CRSF::LinkStatistics.uplink_RSSI_2 : CRSF::LinkStatistics.uplink_RSSI_1,
+                        CRSF::uplink_Link_quality, CRSF::uplink_SNR
+                    );
                 }
                 else {
                     client->text("ok");
@@ -137,7 +141,7 @@ extern void ResetPower();
 
 void shrew_restartRadio()
 {
-    Radio.Begin();
+    Radio.Begin(FHSSgetMinimumFreq(), FHSSgetMaximumFreq());
     ResetPower();
     hwTimer::resume();
     connectionState = noCrossfire;

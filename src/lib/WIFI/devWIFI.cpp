@@ -883,7 +883,10 @@ static void HandleContinuousWave(AsyncWebServerRequest *request) {
     request->send(response);
     request->client()->close();
 
+    #ifndef BUILD_SHREW_WIFI
     Radio.TXdoneCallback = [](){};
+    #endif
+
     Radio.Begin(FHSSgetMinimumFreq(), FHSSgetMaximumFreq());
 
     POWERMGNT::init();

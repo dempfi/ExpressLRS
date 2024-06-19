@@ -164,6 +164,15 @@ function websock_init() {
     ws.onmessage = function(event) {
         ws_timestamp = Date.now();
         console.log('WebSocket data received:', event.data);
+        if (typeof event.data === 'string' && event.data.startsWith("OK:")) {
+            let telem = event.data.substring(3).split(',');
+            let telemStr = `RSSI:&nbsp;${telem[0]}&nbsp;;&nbsp;LQ:&nbsp;${telem[1]}&nbsp;;&nbsp;SNR:&nbsp;${telem[2]}`;
+            document.getElementById("msg_temeletry").innerHTML = telemStr;
+            document.getElementById("msg_temeletry").classList.remove("hidden");
+        }
+        else if (typeof event.data === 'string' && event.data == "ok") {
+            document.getElementById("msg_temeletry").classList.add("hidden");
+        }
     };
     ws.onclose = function(event) {
         console.log('WebSocket closed, event reason:', event.reason);
