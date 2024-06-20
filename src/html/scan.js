@@ -4,7 +4,7 @@
 /* eslint-disable max-len */
 /* eslint-disable require-jsdoc */
 
-document.addEventListener('DOMContentLoaded', init, false);
+//document.addEventListener('DOMContentLoaded', init, false);
 let colorTimer = undefined;
 let colorUpdated  = false;
 let storedModelId = 255;

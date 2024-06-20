@@ -100,4 +100,11 @@ void AutoDetect::handleInput()
     }
 }
 
+void AutoDetect::FakeDataReceived()
+{
+    rmt_driver_uninstall(PPM_RMT_CHANNEL);
+    startCRSF();
+    handset->FakeDataReceived();
+}
+
 #endif

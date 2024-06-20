@@ -562,6 +562,17 @@ void CRSFHandset::handleOutput()
     }
 }
 
+void CRSFHandset::FakeDataReceived()
+{
+    GoodPktsCount++;
+    uint32_t nowMicros = micros();
+    uint32_t nowMillis = millis();
+    CRSFHandset::dataLastRecv = nowMicros;
+    RCdataLastRecv = nowMicros;
+    UARTwdtLastChecked = nowMillis;
+    if (RCdataCallback) RCdataCallback();
+}
+
 void CRSFHandset::duplex_set_RX() const
 {
 #if defined(PLATFORM_ESP32)

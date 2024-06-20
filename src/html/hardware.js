@@ -2,7 +2,7 @@
 /* eslint-disable comma-dangle */
 /* eslint-disable require-jsdoc */
 
-document.addEventListener('DOMContentLoaded', onReady, false);
+//document.addEventListener('DOMContentLoaded', onReady, false);
 
 function _(el) {
   return document.getElementById(el);

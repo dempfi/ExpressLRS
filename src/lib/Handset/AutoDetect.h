@@ -11,6 +11,7 @@ public:
     void End() override;
     bool IsArmed() override;
     void handleInput() override;
+    void FakeDataReceived() override;
 
 private:
     void migrateTo(Handset *that) const;

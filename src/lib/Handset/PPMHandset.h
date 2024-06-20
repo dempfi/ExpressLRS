@@ -9,6 +9,7 @@ public:
     void Begin() override;
     void End() override;
     bool IsArmed() override;
+    void FakeDataReceived() override;
     void handleInput() override;
 
 private:

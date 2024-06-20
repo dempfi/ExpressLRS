@@ -9,7 +9,7 @@ void shrew_appendDefaults(RxConfig* cfg, rx_config_t* rxcfg)
     {
         rx_config_pwm_t *pwm = &(rxcfg->pwmChannels)[ch];
         pwm->val.inputChannel += 2;
-        pwm->val.failsafe = 0;
+        pwm->val.failsafeMode = PWMFAILSAFE_NO_PULSES;
     }
     #endif
 }

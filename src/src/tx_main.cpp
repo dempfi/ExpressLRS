@@ -717,7 +717,8 @@ static void UARTdisconnected()
   connectionState = noCrossfire;
 }
 
-static void UARTconnected()
+//static
+void UARTconnected()
 {
   #if defined(PLATFORM_ESP32) || defined(PLATFORM_ESP8266)
   webserverPreventAutoStart = true;

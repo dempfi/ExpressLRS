@@ -3,12 +3,20 @@
 <html lang="en">
 
 <head>
-    <title>Shrew Web Control</title>
+    <title>Browser ELRS Control</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="stylesheet" href="elrs.css" />
-    <script src="shrew.js"></script>
-    <script src="joy.js"></script>
+	<script>
+		let inline_loader_list = [
+			{ tag: 'link'  , attribs: { rel: 'stylesheet', href: 'elrs.css'}},
+			{ tag: 'script', attribs: { src: 'shrew.js'}},
+            { tag: 'script', attribs: { src: 'joy.js'}}
+		];
+		function inline_loader_ondone() {
+			shrew_onLoad();
+		}
+@@include("inlineseqloader.js")
+	</script>
     <style>
         .hidden {display: none;}
         .joy-row
@@ -51,8 +59,8 @@
     </style>
 </head>
 
-<body onload="shrew_onLoad()">
-<div><h2>Shrew Web Control</h2></div>
+<body>
+<div><h2>Browser ELRS Control</h2></div>
 <div id="msg_wifidisconnected" class="hidden">Wi-Fi DISCONNECTED</div>
 <div id="msg_temeletry" class="hidden">&nbsp;</div>
 <div id="joystick_area" class="">
@@ -68,7 +76,7 @@
         <div class="slidecontainer joy-column">
             <input type="range" min="0" max="100" value="50" class="slider" id="slider_1">
         </div>
-        <div class="slidecontainer joy-column" style="min-width:50px;>&nbsp;&nbsp;&nbsp;&nbsp;</div>
+        <div class="slidecontainer joy-column" style="min-width:50px;">&nbsp;&nbsp;&nbsp;&nbsp;</div>
         <div class="slidecontainer joy-column">
             <input type="range" min="0" max="100" value="50" class="slider" id="slider_2">
         </div>

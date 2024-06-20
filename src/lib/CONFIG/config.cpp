@@ -1051,7 +1051,9 @@ RxConfig::SetDefaults(bool commit)
 
     m_config.serial1Protocol = PROTOCOL_SERIAL1_NONE;
 
+#ifdef BUILD_SHREW_HBRIDGE
     shrew_appendDefaults(this, &m_config);
+#endif
 
     if (commit)
     {

@@ -20,6 +20,8 @@ public:
     void Begin() override;
     void End() override;
 
+    void FakeDataReceived() override;
+
 #ifdef CRSF_TX_MODULE
     bool IsArmed() override { return CRSF_to_BIT(ChannelData[4]); } // AUX1
     void handleInput() override;

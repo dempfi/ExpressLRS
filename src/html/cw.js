@@ -1,6 +1,6 @@
 @@require(chip)
 /* eslint-disable max-len, require-jsdoc */
-document.addEventListener('DOMContentLoaded', init, false);
+//document.addEventListener('DOMContentLoaded', init, false);
 
 function _(el) {
   return document.getElementById(el);

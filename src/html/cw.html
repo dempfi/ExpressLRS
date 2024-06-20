@@ -6,7 +6,16 @@
 	<title>Welcome to your ExpressLRS System</title>
 	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
-	<link rel="stylesheet" href="elrs.css" />
+	<script>
+		let inline_loader_list = [
+			{ tag: 'link'  , attribs: { rel: 'stylesheet', href: 'elrs.css'}},
+			{ tag: 'script', attribs: { src: 'cw.js'}}
+		];
+		function inline_loader_ondone() {
+			init();
+		}
+@@include("inlineseqloader.js")
+	</script>
 </head>
 
 <body>
@@ -74,5 +83,4 @@
 		</div>
 	</div>
 </body>
-<script src="cw.js"></script>
 </html>

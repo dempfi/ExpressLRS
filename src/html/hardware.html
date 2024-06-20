@@ -6,7 +6,16 @@
 	<title>Welcome to your ExpressLRS System</title>
 	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
-	<link rel="stylesheet" href="elrs.css" />
+	<script>
+		let inline_loader_list = [
+			{ tag: 'link'  , attribs: { rel: 'stylesheet', href: 'elrs.css'}},
+			{ tag: 'script', attribs: { src: 'hardware.js'}}
+		];
+		function inline_loader_ondone() {
+			onReady();
+		}
+@@include("inlineseqloader.js")
+	</script>
 	<style>
 
 img.icon-input {
@@ -306,5 +315,4 @@ td img.icon-pwm {
 		</div>
 	</div>
 </body>
-<script src="hardware.js"></script>
 </html>

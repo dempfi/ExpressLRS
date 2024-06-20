@@ -147,9 +147,11 @@ var ws_timestamp = Date.now();
 function websock_init() {
     ws_reconnect_timer = null;
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    ws = new WebSocket(`${protocol}://${window.location.host}/shrew_ws`);
+    const url = `${protocol}://${window.location.host}/shrew_ws`;
+    console.log("Connecting WebSocket " + url);
+    ws = new WebSocket(url);
     ws_timestamp = Date.now();
-    var timeout = setTimeout(function() {
+    var conn_timeout = setTimeout(function() {
         if (ws.readyState !== WebSocket.OPEN) {
             console.log('Connection timeout. Closing WebSocket.');
             ws.close();
@@ -157,7 +159,7 @@ function websock_init() {
         }
     }, 3000);
     ws.onopen = function() {
-        clearTimeout(timeout);
+        clearTimeout(conn_timeout);
         ws_timestamp = Date.now();
         console.log('WebSocket connection established');
     };
@@ -179,7 +181,7 @@ function websock_init() {
         ws_checkConnection();
     };
     ws.onerror = function(error) {
-        console.error('WebSocket error:', error);
+        console.error('WebSocket error: ' + error.code);
         ws_checkConnection();
     };
 }
@@ -203,9 +205,9 @@ function ws_checkConnection() {
     }
     else {
         if (timedout) {
-            console.log('WebSocket no response, closing');
-            ws.close();
-            ws_primeReconnect();
+            //console.log('WebSocket no response, closing');
+            //ws.close();
+            //ws_primeReconnect();
             return false;
         }
     }

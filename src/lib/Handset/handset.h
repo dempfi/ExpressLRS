@@ -87,6 +87,8 @@ public:
      */
     uint32_t GetRCdataLastRecv() const { return RCdataLastRecv; }
 
+    virtual void FakeDataReceived() {};
+
 protected:
     virtual ~Handset() = default;
 
