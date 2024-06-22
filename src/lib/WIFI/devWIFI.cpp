@@ -1284,6 +1284,9 @@ static int event()
   }
   else if (wifiStarted)
   {
+    if (shrew_isActive()) {
+      return DURATION_IMMEDIATELY;
+    }
     wifiStarted = false;
     WiFi.disconnect(true);
     WiFi.mode(WIFI_OFF);

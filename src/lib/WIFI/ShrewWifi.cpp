@@ -139,9 +139,11 @@ void shrew_handleWebUpdate(uint32_t now)
         shrew_restartRadio();
     }
     #endif
+    #if defined(TARGET_RX)
     if ((now - last_rx_time) >= 1000) {
         connectionHasModelMatch = false;
     }
+    #endif
 }
 
 void shrew_setupServer(AsyncWebServer* srv)
@@ -191,9 +193,11 @@ bool shrew_isActive() {
     #ifdef BUILD_SHREW_WIFI
     if (has_inited)
     {
+        #ifdef TARGET_RX
         if (servos_initialized == false) {
             ServoOut_device.start();
         }
+        #endif
         return true;
     }
     #endif
