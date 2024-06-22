@@ -6,9 +6,7 @@
 #include "config.h"
 #include "logging.h"
 #include "rxtx_intf.h"
-#ifdef BUILD_SHREW_HBRIDGE
 #include "hbridge.h"
-#endif
 
 static int8_t servoPins[PWM_MAX_CHANNELS];
 static pwm_channel_t pwmChannels[PWM_MAX_CHANNELS];
@@ -243,7 +241,7 @@ static int start()
         }
 #endif
     }
-    //shrew_markServosInitialized(true);
+    shrew_markServosInitialized(true);
     // set servo outputs to failsafe position on start in case they want to play silly buggers!
     servosFailsafe();
     return DURATION_NEVER;
@@ -251,9 +249,9 @@ static int start()
 
 static int event()
 {
-    //if (shrew_isActive()) {
-    //    return DURATION_IMMEDIATELY;
-    //}
+    if (shrew_isActive()) {
+        return DURATION_IMMEDIATELY;
+    }
     if (!OPT_HAS_SERVO_OUTPUT || connectionState == disconnected)
     {
         // Disconnected should come after failsafe on the RX,
@@ -279,7 +277,7 @@ static int event()
 #endif
             servoPins[ch] = UNDEF_PIN;
         }
-        //shrew_markServosInitialized(false);
+        shrew_markServosInitialized(false);
 #endif
         return DURATION_NEVER;
     }
