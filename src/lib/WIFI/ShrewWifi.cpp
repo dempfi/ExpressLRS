@@ -32,10 +32,6 @@ static bool has_inited = false;
 static uint32_t last_rx_time = 0;
 static uint32_t last_ws_time = 0;
 
-#if defined(TARGET_TX)
-static bool request_radio_restart = false;
-#endif
-
 extern void WebUpdateSendContent(AsyncWebServerRequest *request);
 extern void ICACHE_RAM_ATTR servoNewChannelsAvailable();
 extern void ICACHE_RAM_ATTR crsfRCFrameAvailable();
@@ -50,9 +46,6 @@ static void OnWsEvent(AsyncWebSocket* server, AsyncWebSocketClient* client, AwsE
     if (type == WS_EVT_CONNECT) {
         //Serial.println("WebSocket client connected");
         if (has_inited == false) {
-            #if defined(TARGET_TX)
-            request_radio_restart = true;
-            #endif
             has_inited = true;
         }
     } else if (type == WS_EVT_DISCONNECT) {
@@ -73,7 +66,9 @@ static void OnWsEvent(AsyncWebSocket* server, AsyncWebSocketClient* client, AwsE
                 servoNewChannelsAvailable(); // servo PWM generator handles output frequency
                 crsfRCFrameAvailable();      // serialIO loop handles output rate
                 #elif defined(TARGET_TX)
-                handset->FakeDataReceived();
+                if (shrew_hasWifiStarted()) {
+                    handset->FakeDataReceived();
+                }
                 #endif
             }
             if ((now - last_ws_time) >= 100 && client->canSend()) {
@@ -84,8 +79,11 @@ static void OnWsEvent(AsyncWebSocket* server, AsyncWebSocketClient* client, AwsE
                         CRSF::LinkStatistics.uplink_Link_quality, CRSF::LinkStatistics.uplink_SNR
                     );
                 }
-                else {
+                else if (shrew_hasWifiStarted()) {
                     client->text("ok");
+                }
+                else {
+                    client->text("bad");
                 }
                 #else
                 client->text("ok");
@@ -133,12 +131,6 @@ void shrew_handleWebUpdate(uint32_t now)
     if (has_inited == false) {
         return;
     }
-    #if defined(TARGET_TX)
-    if (request_radio_restart) {
-        request_radio_restart = false;
-        shrew_restartRadio();
-    }
-    #endif
     #if defined(TARGET_RX)
     if ((now - last_rx_time) >= 1000) {
         connectionHasModelMatch = false;
@@ -163,31 +155,18 @@ uint32_t shrew_getLastDataTime()
     return last_rx_time * 1000;
 }
 
-extern void ResetPower();
-extern void UARTconnected();
-
-void shrew_restartRadio()
-{
-    #ifdef TARGET_TX
-    Radio.Begin(FHSSgetMinimumFreq(), FHSSgetMaximumFreq());
-    ResetPower();
-    //hwTimer::resume();
-    connectionState = disconnected;
-    UARTconnected();
-    handset->FakeDataReceived();
-    #endif
-}
-
 #else // BUILD_SHREW_WIFI
 
 #endif
 
+#ifdef TARGET_RX
 extern device_t ServoOut_device;
 
 static bool servos_initialized = false;
 void shrew_markServosInitialized(bool x) {
     servos_initialized = x;
 }
+#endif
 
 bool shrew_isActive() {
     #ifdef BUILD_SHREW_WIFI

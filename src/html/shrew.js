@@ -4,6 +4,7 @@ var Slider1;
 var Slider2;
 
 var shrew_task_timer;
+var shrew_task_timer_backup;
 var mixer_dirty = false;
 var mixer_prev = "";
 var wakeLock = null;
@@ -35,6 +36,7 @@ function shrew_onLoad() {
 
 function shrew_task()
 {
+    clearTimeout(shrew_task_timer_backup);
     var currentTime = Date.now();
     updateMixerFunction();
     if (MyGamepad == null) {
@@ -53,6 +55,9 @@ function shrew_task()
                 mixer_custom = "return simpleTankMix({mode:4});";
             }
         }
+        else if (mixer_custom.trim().endsWith("return true;") != true) {
+            mixer_custom = "return false;";
+        }
         let contents = "function mixer_run(){\r\n";
         contents += mixer_custom;
         contents += "\r\n}";
@@ -64,7 +69,7 @@ function shrew_task()
         console.error('error running mixer:', e);
     }
     fillDebugCells();
-    if (ws_checkConnection())
+    if (ws_checkConnection() || ws.readyState === WebSocket.OPEN)
     {
         document.getElementById("msg_wifidisconnected").classList.add("hidden");
         if (ws.bufferedAmount === 0)
@@ -101,6 +106,7 @@ function shrew_task()
         document.getElementById("msg_gamepaddisconnected").classList.add("hidden");
     }
     shrew_task_timer = requestAnimationFrame(shrew_task);
+    shrew_task_timer_backup = setTimeout(shrew_task, 100);
 }
 
 function updateMixerFunction() {
@@ -175,10 +181,14 @@ function websock_init() {
         else if (typeof event.data === 'string' && event.data == "ok") {
             document.getElementById("msg_temeletry").classList.add("hidden");
         }
+        else if (typeof event.data === 'string' && event.data == "bad") {
+            document.getElementById("msg_nocontrol").classList.remove("hidden");
+        }
     };
     ws.onclose = function(event) {
         console.log('WebSocket closed, event reason:', event.reason);
         ws_checkConnection();
+        document.getElementById("msg_wifidisconnected").classList.remove("hidden");
     };
     ws.onerror = function(error) {
         console.error('WebSocket error: ' + error.code);
@@ -197,6 +207,7 @@ function ws_primeReconnect() {
     }, 1000);
 }
 
+var timeout_cnt = 0;
 function ws_checkConnection() {
     var currentTime = Date.now();
     var timedout = ((currentTime - ws_timestamp) >= 1000);

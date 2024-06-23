@@ -6,8 +6,14 @@
 #include "CRSFHandset.h"
 #include "PPMHandset.h"
 #include "logging.h"
+#include "options.h"
 
 #include <driver/rmt.h>
+
+#ifdef BUILD_SHREW_WIFI
+extern void shrew_startWifi();
+extern bool shrew_hasWifiStarted();
+#endif
 
 constexpr auto RMT_TICKS_PER_US = 10;
 
@@ -96,13 +102,31 @@ void AutoDetect::handleInput()
         {
             DBGLN("No signal detected");
             input_detect = 0;
+
+            #ifdef BUILD_SHREW_WIFI
+            if (firmwareOptions.wifi_auto_on_interval < 10000 && firmwareOptions.wifi_auto_on_interval >= 0 && shrew_hasWifiStarted() == false) {
+                DBGLN("Starting Shrew Wi-Fi Server");
+                shrew_startWifi();
+                startCRSF();
+            }
+            #endif
         }
     }
+    #ifdef BUILD_SHREW_WIFI
+    if (shrew_hasWifiStarted()) {
+        handset->FakeDataReceived();
+    }
+    #endif
 }
 
 void AutoDetect::FakeDataReceived()
 {
     rmt_driver_uninstall(PPM_RMT_CHANNEL);
+    #ifdef BUILD_SHREW_WIFI
+    if (shrew_hasWifiStarted() == false) {
+        shrew_startWifi();
+    }
+    #endif
     startCRSF();
     handset->FakeDataReceived();
 }

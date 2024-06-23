@@ -28,6 +28,13 @@
 #define USBSerial Serial
 #endif
 
+#ifdef BUILD_SHREW_WIFI
+extern bool shrew_hasWifiStarted();
+extern void shrew_startWifi();
+extern uint32_t shrew_getLastDataTime();
+extern bool shrew_isActive();
+#endif
+
 //// CONSTANTS ////
 #define MSP_PACKET_SEND_INTERVAL 10LU
 
@@ -88,10 +95,6 @@ static TxTlmRcvPhase_e TelemetryRcvPhase = ttrpTransmitting;
 StubbornReceiver TelemetryReceiver;
 StubbornSender MspSender;
 uint8_t CRSFinBuffer[CRSF_MAX_PACKET_LEN+1];
-
-#ifdef BUILD_SHREW_WIFI
-extern uint32_t shrew_getLastDataTime();
-#endif
 
 device_affinity_t ui_devices[] = {
   {&Handset_device, 1},
@@ -707,12 +710,19 @@ void ICACHE_RAM_ATTR timerCallback()
 
 static void UARTdisconnected()
 {
+  #ifdef BUILD_SHREW_WIFI
+  if (shrew_isActive()) {
+    return;
+  }
+  if (shrew_hasWifiStarted() == false && millis() >= 1000 && millis() <= 10000 && firmwareOptions.wifi_auto_on_interval < 10000 && firmwareOptions.wifi_auto_on_interval >= 0) {
+    shrew_startWifi();
+  }
+  #endif
   hwTimer::stop();
   connectionState = noCrossfire;
 }
 
-//static
-void UARTconnected()
+static void UARTconnected()
 {
   #if defined(PLATFORM_ESP32) || defined(PLATFORM_ESP8266)
   webserverPreventAutoStart = true;

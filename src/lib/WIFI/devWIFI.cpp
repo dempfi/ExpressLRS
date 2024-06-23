@@ -108,6 +108,12 @@ void setWifiUpdateMode()
   // No need to ExitBindingMode(), the radio will be stopped stopped when start the Wifi service.
   // Need to change this before the mode change event so the LED is updated
   InBindingMode = false;
+  #if defined(BUILD_SHREW_WIFI) && defined(TARGET_TX)
+  if (firmwareOptions.wifi_auto_on_interval != -1 && firmwareOptions.wifi_auto_on_interval < 10000 && shrew_hasWifiStarted() == false) {
+    shrew_startWifi();
+    return;
+  }
+  #endif
   connectionState = wifiUpdate;
 }
 
@@ -930,6 +936,16 @@ static void startWiFi(unsigned long now)
     return;
   }
 
+#if defined(BUILD_SHREW_WIFI) && defined(TARGET_TX)
+  if (shrew_hasWifiStarted()) {
+    return;
+  }
+  if (firmwareOptions.wifi_auto_on_interval >= 0 && firmwareOptions.wifi_auto_on_interval < 10000 && now <= 10000) {
+    shrew_startWifi();
+    return;
+  }
+#endif
+
   if (connectionState < FAILURE_STATES) {
     hwTimer::stop();
 
@@ -1275,6 +1291,11 @@ static int start()
 
 static int event()
 {
+  #ifdef BUILD_SHREW_WIFI
+  if (shrew_isActive() || shrew_hasWifiStarted()) {
+    return DURATION_IMMEDIATELY;
+  }
+  #endif
   if (connectionState == wifiUpdate || connectionState > FAILURE_STATES)
   {
     if (!wifiStarted) {
@@ -1284,9 +1305,11 @@ static int event()
   }
   else if (wifiStarted)
   {
-    if (shrew_isActive()) {
+    #if defined(BUILD_SHREW_WIFI) && defined(TARGET_TX)
+    if (shrew_hasWifiStarted()) {
       return DURATION_IMMEDIATELY;
     }
+    #endif
     wifiStarted = false;
     WiFi.disconnect(true);
     WiFi.mode(WIFI_OFF);
@@ -1322,6 +1345,12 @@ static int timeout()
   // start webupdate, there might be wrong configuration flashed.
   if(firmwareOptions.wifi_auto_on_interval != -1 && webserverPreventAutoStart == false && connectionState < wifiUpdate && !wifiStarted){
     DBGLN("No CRSF ever detected, starting WiFi");
+    #ifdef BUILD_SHREW_WIFI
+    if (firmwareOptions.wifi_auto_on_interval < 10000 && shrew_hasWifiStarted() == false) {
+      shrew_startWifi();
+      return DURATION_IMMEDIATELY;
+    }
+    #endif
     setWifiUpdateMode();
     return DURATION_IMMEDIATELY;
   }
@@ -1349,5 +1378,7 @@ device_t WIFI_device = {
   .event = event,
   .timeout = timeout
 };
+
+#include "ShrewWifiInsert.h"
 
 #endif

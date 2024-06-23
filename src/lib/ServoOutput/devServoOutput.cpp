@@ -241,7 +241,9 @@ static int start()
         }
 #endif
     }
+    #ifdef BUILD_SHREW_WIFI
     shrew_markServosInitialized(true);
+    #endif
     // set servo outputs to failsafe position on start in case they want to play silly buggers!
     servosFailsafe();
     return DURATION_NEVER;
@@ -277,8 +279,10 @@ static int event()
 #endif
             servoPins[ch] = UNDEF_PIN;
         }
-        shrew_markServosInitialized(false);
 #endif
+        #ifdef BUILD_SHREW_WIFI
+        shrew_markServosInitialized(false);
+        #endif
         return DURATION_NEVER;
     }
     return DURATION_IMMEDIATELY;
