@@ -290,6 +290,32 @@ function configSave() {
   xhr.send(formJson);
 }
 
+document.getElementById('mixerFileInput').addEventListener('change', function() {
+    if (this.value == '') {
+        return;
+    }
+    var file = this.files[0];
+    var reader = new FileReader();
+    reader.onload = function() {
+        document.getElementById('txt_mixer').value = this.result;
+        document.getElementById('mixerFileInput').value = '';
+    }
+    reader.onerror = function() {
+        console.log('Error occurred while reading the file:', reader.error);
+    };
+    reader.readAsText(file);
+});
+
+function configLoadLocal() {
+    let text = document.getElementById('txt_mixer').value;
+    let blob = new Blob([text], {type: 'text/plain'});
+    let url = URL.createObjectURL(blob);
+    let link = document.createElement('a');
+    link.href = url;
+    link.download = 'mixer-' + currentDateTimeStr() + ".txt";
+    link.click();
+}
+
 function populateFormWithData(jsonData) {
     for (var key in jsonData) {
         if (jsonData.hasOwnProperty(key)) {
@@ -328,6 +354,8 @@ function showHideDebug() {
 var activeGamepadIndex = null;
 var activeGamepadId = null;
 var MyGamepad = null;
+var PrevButton = [];
+var OnButtonPress = null;
 
 function updateGamepadState() {
     const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
@@ -342,6 +370,7 @@ function updateGamepadState() {
                     activeGamepadId = MyGamepad.id;
                     buildGamepadView();
                 }
+                PrevButton = new Array(MyGamepad.buttons.length).fill(false);
             }
         }
     }
@@ -386,6 +415,12 @@ function pollGamepad() {
         else {
             ele.style.backgroundColor = 'gray';
             ele.style.borderColor     = 'black';
+        }
+        if (PrevButton.length > i ) {
+            if (MyGamepad.buttons[i].pressed && PrevButton[i] != true && typeof OnButtonPress === 'function') {
+                OnButtonPress(i);
+            }
+            PrevButton[i] = MyGamepad.buttons[i].pressed;
         }
     }
     for (let i = 0; i < MyGamepad.axes.length; i++) {
@@ -507,6 +542,17 @@ function initWakeLock() {
     requestWakeLock();
 }
 
+function currentDateTimeStr() {
+    let now     = new Date();
+    let year    = now.getFullYear();
+    let month   = ("0" + (now.getMonth() + 1)).slice(-2);
+    let day     = ("0" + now.getDate()).slice(-2);
+    let hours   = ("0" + now.getHours()).slice(-2);
+    let minutes = ("0" + now.getMinutes()).slice(-2);
+    let seconds = ("0" + now.getSeconds()).slice(-2);
+    return year + month + day + hours + minutes + seconds;
+}
+
 function clamp(value, limit1, limit2) {
     var min = Math.min(limit1, limit2);
     var max = Math.max(limit1, limit2);
@@ -559,6 +605,10 @@ function scaleToCRSF(x, s) {
     return mapRange(x * s, -1, 1, CRSF_CHANNEL_VALUE_MIN, CRSF_CHANNEL_VALUE_MAX, true);
 }
 
+function sliderToCRSF(x, s) {
+    return mapRange(x * s, 0, 100, CRSF_CHANNEL_VALUE_MIN, CRSF_CHANNEL_VALUE_MAX, true);
+}
+
 function arcadeTankMix(t, s) {
     // 1. Get X and Y from the Joystick, do whatever scaling and calibrating you need to do based on your hardware.
     // 2. Invert X
@@ -578,7 +628,7 @@ function arcadeTankMix(t, s) {
     return [clamp(l, -1, 1), clamp(r, -1, 1)];
 }
 
-function simpleTankMix({mode = 0, thr_scale = 1, str_scale = 1, thr_dz = 0.05, str_dz = 0.05, thr_exp = 0, str_exp = 0, thr_trim = 0, str_trim = 0, left_scale = 1, right_scale = 1, left_dz = 0, right_dz = 0, left_exp = 0, right_exp = 0, left_trim = 0, right_trim = 0}) {
+function simpleTankMix({mode = 0, thr_scale = 1, str_scale = 1, thr_dz = 0.05, str_dz = 0.05, thr_exp = 0, str_exp = 0, thr_trim = 0, str_trim = 0, left_scale = 1, right_scale = 1, left_dz = 0, right_dz = 0, left_exp = 0, right_exp = 0, left_trim = 0, right_trim = 0, chan_offset = 0}) {
     let ret = true;
     let t = 0;
     let s = 0;
@@ -640,9 +690,9 @@ function simpleTankMix({mode = 0, thr_scale = 1, str_scale = 1, thr_dz = 0.05, s
     let lr = arcadeTankMix(t, s); 
     lr[0] = applyExpo(lr[0], left_exp)
     lr[1] = applyExpo(lr[1], right_exp)
-    lr[0] = applyDeadzone(lr[0], left_exp)
-    lr[1] = applyDeadzone(lr[1], right_exp)
-    channel[0] = scaleToCRSF(lr[0] + left_trim, left_scale);
-    channel[1] = scaleToCRSF(lr[1] + right_trim, right_scale);
+    lr[0] = applyDeadzone(lr[0], left_dz)
+    lr[1] = applyDeadzone(lr[1], right_dz)
+    channel[0 + chan_offset] = scaleToCRSF(lr[0] + left_trim, left_scale);
+    channel[1 + chan_offset] = scaleToCRSF(lr[1] + right_trim, right_scale);
     return ret;
 }

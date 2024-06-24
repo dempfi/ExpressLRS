@@ -90,8 +90,13 @@
     <div id="gamepad_axis" class="square-container"></div>
 </div>
 <div><fieldset><legend id="btn_debug" onclick="showHideDebug()">Debug (click to expand/hide)</legend><div id="debug_hider"><div id="debug_area" class="dbggrid-container"></div></div></fieldset></div>
-<div><fieldset><legend id="btn_config" onclick="showHideConfig()">Config (click to expand/hide)</legend><div id="div_config"><form id="config_data_form">
-<div><!-- <input type="button" value="Load" onclick="configLoad()" /> --><input type="button" value="Save" onclick="configSave()" /></div>
+<div><fieldset><legend id="btn_config" onclick="showHideConfig()">Config (click to expand/hide)</legend><div id="div_config">
+<div>
+    <!-- <input type="button" value="Load" onclick="configLoad()" /> -->
+    <input type="button" value="Save to ELRS" onclick="configSave()" />&nbsp;&nbsp;&nbsp;
+    <span style="white-space: nowrap;"><label for="mixerFileInput">Open Local File:</label><input type="file" id="mixerFileInput" name="mixerFileInput"></span>
+    <input type="button" value="Save Locally" onclick="configLoadLocal()" /></div>
+    <form id="config_data_form">
 <fieldset><legend>Mixer:</legend>
 <textarea id="txt_mixer" name="txt_mixer" oninput="mixer_onChange()" style="min-height: 100pt; width: 100%;">
 </textarea>
