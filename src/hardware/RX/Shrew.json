@@ -1,4 +1,7 @@
 {
+    "serial_rx": 3,
+    "serial_tx": 1,
+
     "radio_busy": 23,
     "radio_dio1": 18,
     "radio_miso": 26,
@@ -19,7 +22,6 @@
     "ledidx_rgb_status": [0],
     "ledidx_rgb_boot": [0],
 
-    "pwm_outputs": [19, 22],
     "vbat": 4,
     "vbat_offset": 12,
     "vbat_scale": 410

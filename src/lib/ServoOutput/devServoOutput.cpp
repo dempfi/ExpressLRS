@@ -261,7 +261,7 @@ static int event()
     {
         // Disconnected should come after failsafe on the RX,
         // so it is safe to shut down when disconnected
-        return DURATION_NEVER;
+        return DURATION_IMMEDIATELY;
     }
     else if (connectionState == wifiUpdate)
     {
@@ -286,7 +286,7 @@ static int event()
         #ifdef BUILD_SHREW_WIFI
         shrew_markServosInitialized(false);
         #endif
-        return DURATION_NEVER;
+        return DURATION_IMMEDIATELY;
     }
     return DURATION_IMMEDIATELY;
 }
