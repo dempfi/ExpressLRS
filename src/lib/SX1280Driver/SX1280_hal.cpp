@@ -114,7 +114,7 @@ void SX1280Hal::reset(void)
             pinMode(GPIO_PIN_RST_2, OUTPUT);
             digitalWrite(GPIO_PIN_RST_2, LOW);
         }
-        delay(50);
+        delayMicroseconds(10); // shorter pulse, for DRV8244 nSLEEP pulse
         digitalWrite(GPIO_PIN_RST, HIGH);
         if (GPIO_PIN_RST_2 != UNDEF_PIN)
         {

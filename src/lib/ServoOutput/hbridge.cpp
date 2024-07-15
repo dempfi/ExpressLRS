@@ -48,6 +48,12 @@ void hbridge_init(void)
     digitalWrite(HBRIDGE_PIN_B2, LOW);
     hbridge_channels[HBRIDGE_IDX_B2] = PWM.allocate(HBRIDGE_PIN_B2, HBRIDGE_PWM_FREQ);
     has_init = true;
+    #if defined(HBRIDGE_DRV8244) && defined(HBRIDGE_PIN_NSLEEP)
+    pinMode(HBRIDGE_PIN_NSLEEP, OUTPUT);
+    digitalWrite(HBRIDGE_PIN_NSLEEP, LOW);
+    delayMicroseconds(5);
+    digitalWrite(HBRIDGE_PIN_NSLEEP, HIGH);
+    #endif
     hbridge_failsafe();
 }
 

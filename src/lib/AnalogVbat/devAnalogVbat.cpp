@@ -37,7 +37,9 @@ void Vbat_enableSlowUpdate(bool enable)
 
 static int start()
 {
+    #ifndef HBRIDGE_DRV8244
     if (GPIO_ANALOG_VBAT == UNDEF_PIN)
+    #endif
     {
         return DURATION_NEVER;
     }
@@ -92,7 +94,9 @@ static void reportVbat()
 
 static int timeout()
 {
+    #ifndef HBRIDGE_DRV8244
     if (GPIO_ANALOG_VBAT == UNDEF_PIN || telemetry.GetCrsfBatterySensorDetected())
+    #endif
     {
         return DURATION_NEVER;
     }
