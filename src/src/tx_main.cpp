@@ -23,6 +23,8 @@
 #include "devPDET.h"
 #include "devBackpack.h"
 
+#include "MAVLink.h"
+
 #if defined(PLATFORM_ESP32_S3)
 #include "USB.h"
 #define USBSerial Serial
@@ -346,25 +348,7 @@ void ICACHE_RAM_ATTR GenerateSyncPacketData(OTA_Sync_s * const syncPtr)
 
 uint8_t adjustPacketRateForBaud(uint8_t rateIndex)
 {
-  #if defined(RADIO_SX128X)
-    if (CRSFHandset::GetCurrentBaudRate() == 115200 && GPIO_PIN_RCSIGNAL_RX == GPIO_PIN_RCSIGNAL_TX) // Packet rate limited to 150Hz if we are on 115k baud on external module
-    {
-      rateIndex = get_elrs_HandsetRate_max(rateIndex, 6666);
-    }
-    else if (CRSFHandset::GetCurrentBaudRate() == 115200) // Packet rate limited to 250Hz if we are on 115k baud (on internal module)
-    {
-      rateIndex = get_elrs_HandsetRate_max(rateIndex, 4000);
-    }
-    else if (CRSFHandset::GetCurrentBaudRate() == 400000 && GPIO_PIN_RCSIGNAL_RX == GPIO_PIN_RCSIGNAL_TX) // Packet rate limited to 333Hz if we are on 400k baud on external module
-    {
-      rateIndex = get_elrs_HandsetRate_max(rateIndex, 3003);
-    }
-    else if (CRSFHandset::GetCurrentBaudRate() == 400000) // Packet rate limited to 500Hz if we are on 400k baud
-    {
-      rateIndex = get_elrs_HandsetRate_max(rateIndex, 2000);
-    }
-  #endif
-  return rateIndex;
+  return rateIndex = get_elrs_HandsetRate_max(rateIndex, handset->getMinPacketInterval());
 }
 
 void SetRFLinkRate(uint8_t index) // Set speed of RF link
@@ -388,7 +372,7 @@ void SetRFLinkRate(uint8_t index) // Set speed of RF link
 #endif
   hwTimer::updateInterval(interval);
 
-  FHSSusePrimaryFreqBand = !(ModParams->radio_type == RADIO_TYPE_LR1121_LORA_2G4);
+  FHSSusePrimaryFreqBand = !(ModParams->radio_type == RADIO_TYPE_LR1121_LORA_2G4) && !(ModParams->radio_type == RADIO_TYPE_LR1121_GFSK_2G4);
   FHSSuseDualBand = ModParams->radio_type == RADIO_TYPE_LR1121_LORA_DUAL;
 
   Radio.Config(ModParams->bw, ModParams->sf, ModParams->cr, FHSSgetInitialFreq(),
@@ -396,13 +380,18 @@ void SetRFLinkRate(uint8_t index) // Set speed of RF link
 #if defined(RADIO_SX128X)
                , uidMacSeedGet(), OtaCrcInitializer, (ModParams->radio_type == RADIO_TYPE_SX128x_FLRC)
 #endif
+#if defined(RADIO_LR1121)
+               , (ModParams->radio_type == RADIO_TYPE_LR1121_GFSK_900 || ModParams->radio_type == RADIO_TYPE_LR1121_GFSK_2G4), (uint8_t)UID[5], (uint8_t)UID[4]
+#endif
                );
 
 #if defined(RADIO_LR1121)
   if (FHSSuseDualBand)
   {
     Radio.Config(ModParams->bw2, ModParams->sf2, ModParams->cr2, FHSSgetInitialGeminiFreq(),
-                ModParams->PreambleLen2, invertIQ, ModParams->PayloadLength, ModParams->interval, SX12XX_Radio_2);
+                ModParams->PreambleLen2, invertIQ, ModParams->PayloadLength, ModParams->interval,
+                (ModParams->radio_type == RADIO_TYPE_LR1121_GFSK_900 || ModParams->radio_type == RADIO_TYPE_LR1121_GFSK_2G4),
+                (uint8_t)UID[5], (uint8_t)UID[4], SX12XX_Radio_2);
   }
 #endif
 
@@ -1027,7 +1016,9 @@ static void EnterBindingMode()
   FHSSuseDualBand = true;
   expresslrs_mod_settings_s *const dualBandBindingModParams = get_elrs_airRateConfig(RATE_DUALBAND_BINDING); // 2.4GHz 50Hz
   Radio.Config(dualBandBindingModParams->bw2, dualBandBindingModParams->sf2, dualBandBindingModParams->cr2, FHSSgetInitialGeminiFreq(),
-               dualBandBindingModParams->PreambleLen2, true, dualBandBindingModParams->PayloadLength, dualBandBindingModParams->interval, SX12XX_Radio_2);
+               dualBandBindingModParams->PreambleLen2, true, dualBandBindingModParams->PayloadLength, dualBandBindingModParams->interval,
+               (dualBandBindingModParams->radio_type == RADIO_TYPE_LR1121_GFSK_900 || dualBandBindingModParams->radio_type == RADIO_TYPE_LR1121_GFSK_2G4),
+               (uint8_t)UID[5], (uint8_t)UID[4], SX12XX_Radio_2);
 #endif
 
   Radio.SetFrequencyReg(FHSSgetInitialFreq());
@@ -1254,6 +1245,11 @@ static void setupSerial()
     // Set TxUSB to TxBackpack so that data goes to the same place
     TxUSB = TxBackpack;
   }
+  else if (GPIO_PIN_RCSIGNAL_RX == U0RXD_GPIO_NUM && GPIO_PIN_RCSIGNAL_TX == U0TXD_GPIO_NUM)
+  {
+    // This is an internal module, or an external module configured with a relay.  Do not setup TxUSB.
+    TxUSB = new NullStream();
+  }
   else
   {
     // The backpack is on a separate UART to UART0
@@ -1463,8 +1459,6 @@ void loop()
 {
   uint32_t now = millis();
 
-  Radio.ignoreSecondIRQ = false;
-
   HandleUARTout(); // Only used for non-CRSF output
 
   #if defined(USE_BLE_JOYSTICK)
@@ -1526,7 +1520,10 @@ void loop()
         {
           // raw mavlink data - forward to USB rather than handset
           uint8_t count = CRSFinBuffer[1];
+          // Convert to CRSF telemetry where we can
+          convert_mavlink_to_crsf_telem(CRSFinBuffer, count, handset);
           TxUSB->write(CRSFinBuffer + CRSF_FRAME_NOT_COUNTED_BYTES, count);
+          // If we have a backpack
           if (TxUSB != TxBackpack)
           {
             TxBackpack->write(CRSFinBuffer + CRSF_FRAME_NOT_COUNTED_BYTES, count);

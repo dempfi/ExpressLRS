@@ -78,6 +78,8 @@ def build_common(env, mainfile, isTX):
             build_html("shrew.html", "SHREW_HTML", out, env, isTX)
             build_html("shrew.js", "SHREW_JS", out, env, isTX)
             build_html("joy.js", "JOY_JS", out, env, isTX)
+            build_html("lr1121.html", "LR1121_HTML", out, env)
+            build_html("lr1121.js", "LR1121_JS", out, env)
 
     finally:
         if not os.path.exists("include/WebContent.h") or not filecmp.cmp(path, "include/WebContent.h"):
