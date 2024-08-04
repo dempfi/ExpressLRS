@@ -1,23 +1,10 @@
-#if (defined(GPIO_PIN_PWM_OUTPUTS) && defined(PLATFORM_ESP32) && defined(BUILD_SHREW_HBRIDGE))
+#if (defined(GPIO_PIN_PWM_OUTPUTS) && defined(PLATFORM_ESP32))
 
 #include "hbridge.h"
 #include "devServoOutput.h"
 #include "PWM.h"
 #include "CRSF.h"
 #include "logging.h"
-
-// these are defined from the shrew.ini file
-//#define HBRIDGE_DRV8244
-//#define HBRIDGE_DRV8231
-
-#if defined(HBRIDGE_DRV8244)
-#define HBRIDGE_SLEEP_VAL    1000
-#elif defined(HBRIDGE_DRV8231)
-#define HBRIDGE_SLEEP_VAL    0
-#else
-#error
-#endif
-#define HBRIDGE_FULLON_VAL    (1000 - HBRIDGE_SLEEP_VAL)
 
 enum {
     HBRIDGE_IDX_A1 = 0,
@@ -30,30 +17,65 @@ static pwm_channel_t hbridge_channels[4];
 static bool has_init = false;
 static unsigned long move_time = 0;
 
+static uint8_t hbridge_pin_a1;
+static uint8_t hbridge_pin_a2;
+static uint8_t hbridge_pin_b1;
+static uint8_t hbridge_pin_b2;
+static uint32_t hbridge_sleep_val;
+static uint32_t hbridge_full_val;
+
 void hbridge_init(void)
 {
     if (has_init) {
         return;
     }
-    pinMode(HBRIDGE_PIN_A1, OUTPUT);
-    digitalWrite(HBRIDGE_PIN_A1, LOW);
-    hbridge_channels[HBRIDGE_IDX_A1] = PWM.allocate(HBRIDGE_PIN_A1, HBRIDGE_PWM_FREQ);
-    pinMode(HBRIDGE_PIN_A2, OUTPUT);
-    digitalWrite(HBRIDGE_PIN_A2, LOW);
-    hbridge_channels[HBRIDGE_IDX_A2] = PWM.allocate(HBRIDGE_PIN_A2, HBRIDGE_PWM_FREQ);
-    pinMode(HBRIDGE_PIN_B1, OUTPUT);
-    digitalWrite(HBRIDGE_PIN_B1, LOW);
-    hbridge_channels[HBRIDGE_IDX_B1] = PWM.allocate(HBRIDGE_PIN_B1, HBRIDGE_PWM_FREQ);
-    pinMode(HBRIDGE_PIN_B2, OUTPUT);
-    digitalWrite(HBRIDGE_PIN_B2, LOW);
-    hbridge_channels[HBRIDGE_IDX_B2] = PWM.allocate(HBRIDGE_PIN_B2, HBRIDGE_PWM_FREQ);
+    if (firmwareOptions.shrew <= 0) {
+        return;
+    }
+
+    if (firmwareOptions.shrew == 2 || firmwareOptions.shrew == 4) {
+        hbridge_sleep_val = 1000;
+    }
+    else {
+        hbridge_sleep_val = 0;
+    }
+
+    hbridge_full_val = 1000 - hbridge_sleep_val;
+
+    esp_chip_info_t chip_info;
+    esp_chip_info(&chip_info);
+    if (chip_info.revision == 3) {
+        hbridge_pin_a1 = 16;
+        hbridge_pin_a2 = 17;
+        hbridge_pin_b1 = 13;
+        hbridge_pin_b2 = 27;
+    }
+    else {
+        hbridge_pin_a1 = 10;
+        hbridge_pin_a2 = 9;
+        if (firmwareOptions.shrew <= 2) {
+            hbridge_pin_b1 = 13;
+            hbridge_pin_b2 = 27;
+        }
+        else {
+            hbridge_pin_b1 = 19;
+            hbridge_pin_b2 = 22;
+        }
+    }
+
+    pinMode(hbridge_pin_a1, OUTPUT);
+    digitalWrite(hbridge_pin_a1, LOW);
+    hbridge_channels[HBRIDGE_IDX_A1] = PWM.allocate(hbridge_pin_a1, HBRIDGE_PWM_FREQ);
+    pinMode(hbridge_pin_a2, OUTPUT);
+    digitalWrite(hbridge_pin_a2, LOW);
+    hbridge_channels[HBRIDGE_IDX_A2] = PWM.allocate(hbridge_pin_a2, HBRIDGE_PWM_FREQ);
+    pinMode(hbridge_pin_b1, OUTPUT);
+    digitalWrite(hbridge_pin_b1, LOW);
+    hbridge_channels[HBRIDGE_IDX_B1] = PWM.allocate(hbridge_pin_b1, HBRIDGE_PWM_FREQ);
+    pinMode(hbridge_pin_b2, OUTPUT);
+    digitalWrite(hbridge_pin_b2, LOW);
+    hbridge_channels[HBRIDGE_IDX_B2] = PWM.allocate(hbridge_pin_b2, HBRIDGE_PWM_FREQ);
     has_init = true;
-    #if defined(HBRIDGE_DRV8244) && defined(HBRIDGE_PIN_NSLEEP)
-    pinMode(HBRIDGE_PIN_NSLEEP, OUTPUT);
-    digitalWrite(HBRIDGE_PIN_NSLEEP, LOW);
-    delayMicroseconds(5);
-    digitalWrite(HBRIDGE_PIN_NSLEEP, HIGH);
-    #endif
     hbridge_failsafe();
 }
 
@@ -63,10 +85,10 @@ void hbridge_failsafe(void)
         return;
     }
     DBGLN("hbridge_failsafe");
-    PWM.setDuty(hbridge_channels[HBRIDGE_IDX_A1], HBRIDGE_SLEEP_VAL);
-    PWM.setDuty(hbridge_channels[HBRIDGE_IDX_A2], HBRIDGE_SLEEP_VAL);
-    PWM.setDuty(hbridge_channels[HBRIDGE_IDX_B1], HBRIDGE_SLEEP_VAL);
-    PWM.setDuty(hbridge_channels[HBRIDGE_IDX_B2], HBRIDGE_SLEEP_VAL);
+    PWM.setDuty(hbridge_channels[HBRIDGE_IDX_A1], hbridge_sleep_val);
+    PWM.setDuty(hbridge_channels[HBRIDGE_IDX_A2], hbridge_sleep_val);
+    PWM.setDuty(hbridge_channels[HBRIDGE_IDX_B1], hbridge_sleep_val);
+    PWM.setDuty(hbridge_channels[HBRIDGE_IDX_B2], hbridge_sleep_val);
     move_time = 0;
 }
 
@@ -77,6 +99,10 @@ void hbridge_setDuty(pwm_channel_t ch, signed int data)
 
 void hbridge_update(unsigned long now)
 {
+    if (has_init == false) {
+        return;
+    }
+
     unsigned ch1 = ChannelData[0];
     unsigned ch2 = ChannelData[1];
 
@@ -87,40 +113,40 @@ void hbridge_update(unsigned long now)
 
     if (ch1 > CRSF_CHANNEL_VALUE_MID) {
         move_time = now;
-        hbridge_setDuty(hbridge_channels[HBRIDGE_IDX_A2], fmap(ch1, CRSF_CHANNEL_VALUE_MID, CRSF_CHANNEL_VALUE_MAX, HBRIDGE_FULLON_VAL, HBRIDGE_SLEEP_VAL));
-        PWM.setDuty(hbridge_channels[HBRIDGE_IDX_A1], HBRIDGE_FULLON_VAL);
+        hbridge_setDuty(hbridge_channels[HBRIDGE_IDX_A2], fmap(ch1, CRSF_CHANNEL_VALUE_MID, CRSF_CHANNEL_VALUE_MAX, hbridge_full_val, hbridge_sleep_val));
+        PWM.setDuty(hbridge_channels[HBRIDGE_IDX_A1], hbridge_full_val);
     }
     else if (ch1 < CRSF_CHANNEL_VALUE_MID) {
         move_time = now;
-        hbridge_setDuty(hbridge_channels[HBRIDGE_IDX_A1], fmap(ch1, CRSF_CHANNEL_VALUE_MIN, CRSF_CHANNEL_VALUE_MID, HBRIDGE_SLEEP_VAL, HBRIDGE_FULLON_VAL));
-        PWM.setDuty(hbridge_channels[HBRIDGE_IDX_A2], HBRIDGE_FULLON_VAL);
+        hbridge_setDuty(hbridge_channels[HBRIDGE_IDX_A1], fmap(ch1, CRSF_CHANNEL_VALUE_MIN, CRSF_CHANNEL_VALUE_MID, hbridge_sleep_val, hbridge_full_val));
+        PWM.setDuty(hbridge_channels[HBRIDGE_IDX_A2], hbridge_full_val);
     }
     else if (stdby) {
-        PWM.setDuty(hbridge_channels[HBRIDGE_IDX_A1], HBRIDGE_SLEEP_VAL);
-        PWM.setDuty(hbridge_channels[HBRIDGE_IDX_A2], HBRIDGE_SLEEP_VAL);
+        PWM.setDuty(hbridge_channels[HBRIDGE_IDX_A1], hbridge_sleep_val);
+        PWM.setDuty(hbridge_channels[HBRIDGE_IDX_A2], hbridge_sleep_val);
     }
     else {
-        PWM.setDuty(hbridge_channels[HBRIDGE_IDX_A1], HBRIDGE_FULLON_VAL);
-        PWM.setDuty(hbridge_channels[HBRIDGE_IDX_A2], HBRIDGE_FULLON_VAL);
+        PWM.setDuty(hbridge_channels[HBRIDGE_IDX_A1], hbridge_full_val);
+        PWM.setDuty(hbridge_channels[HBRIDGE_IDX_A2], hbridge_full_val);
     }
 
     if (ch2 > CRSF_CHANNEL_VALUE_MID) {
         move_time = now;
-        hbridge_setDuty(hbridge_channels[HBRIDGE_IDX_B2], fmap(ch2, CRSF_CHANNEL_VALUE_MID, CRSF_CHANNEL_VALUE_MAX, HBRIDGE_FULLON_VAL, HBRIDGE_SLEEP_VAL));
-        PWM.setDuty(hbridge_channels[HBRIDGE_IDX_B1], HBRIDGE_FULLON_VAL);
+        hbridge_setDuty(hbridge_channels[HBRIDGE_IDX_B2], fmap(ch2, CRSF_CHANNEL_VALUE_MID, CRSF_CHANNEL_VALUE_MAX, hbridge_full_val, hbridge_sleep_val));
+        PWM.setDuty(hbridge_channels[HBRIDGE_IDX_B1], hbridge_full_val);
     }
     else if (ch2 < CRSF_CHANNEL_VALUE_MID) {
         move_time = now;
-        hbridge_setDuty(hbridge_channels[HBRIDGE_IDX_B1], fmap(ch2, CRSF_CHANNEL_VALUE_MIN, CRSF_CHANNEL_VALUE_MID, HBRIDGE_SLEEP_VAL, HBRIDGE_FULLON_VAL));
-        PWM.setDuty(hbridge_channels[HBRIDGE_IDX_B2], HBRIDGE_FULLON_VAL);
+        hbridge_setDuty(hbridge_channels[HBRIDGE_IDX_B1], fmap(ch2, CRSF_CHANNEL_VALUE_MIN, CRSF_CHANNEL_VALUE_MID, hbridge_sleep_val, hbridge_full_val));
+        PWM.setDuty(hbridge_channels[HBRIDGE_IDX_B2], hbridge_full_val);
     }
     else if (stdby) {
-        PWM.setDuty(hbridge_channels[HBRIDGE_IDX_B1], HBRIDGE_SLEEP_VAL);
-        PWM.setDuty(hbridge_channels[HBRIDGE_IDX_B2], HBRIDGE_SLEEP_VAL);
+        PWM.setDuty(hbridge_channels[HBRIDGE_IDX_B1], hbridge_sleep_val);
+        PWM.setDuty(hbridge_channels[HBRIDGE_IDX_B2], hbridge_sleep_val);
     }
     else {
-        PWM.setDuty(hbridge_channels[HBRIDGE_IDX_B1], HBRIDGE_FULLON_VAL);
-        PWM.setDuty(hbridge_channels[HBRIDGE_IDX_B2], HBRIDGE_FULLON_VAL);
+        PWM.setDuty(hbridge_channels[HBRIDGE_IDX_B1], hbridge_full_val);
+        PWM.setDuty(hbridge_channels[HBRIDGE_IDX_B2], hbridge_full_val);
     }
 }
 

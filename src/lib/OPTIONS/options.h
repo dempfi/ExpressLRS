@@ -38,6 +38,10 @@ typedef struct _options {
     bool        lock_on_first_connection:1;
     bool        _unused2:1; // r9mm_mini_sbus
     bool        is_airport:1;
+
+    bool        permanent_binding:1;
+    int8_t      locked_datarate;
+    uint8_t     shrew;
 #endif
 #if defined(TARGET_TX) || defined(UNIT_TEST)
     uint32_t    tlm_report_interval;

@@ -20,7 +20,9 @@ public:
     void Begin() override;
     void End() override;
 
+#ifdef BUILD_SHREW_WIFI
     void FakeDataReceived() override;
+#endif
 
 #ifdef CRSF_TX_MODULE
     bool IsArmed() override { return CRSF_to_BIT(ChannelData[4]); } // AUX1

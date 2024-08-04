@@ -429,6 +429,8 @@ function updateConfig(data, options) {
   }
   _('vbind').onchange();
 
+  _('lockeddatarate').value = data["lockeddatarate"];
+
   // set initial visibility status of Serial2 protocol selection
   _('serial1-config').style.display = 'none';
   data.pwm?.forEach((item,index) => {
@@ -765,6 +767,7 @@ if (_('config')) {
           "modelid": +_('modelid').value,
           "force-tlm": +_('force-tlm').checked,
           "vbind": +_('vbind').value,
+          "lockeddatarate": +_('lockeddatarate').value,
           "uid": _('uid').value.split(',').map(Number),
         });
       }, () => {

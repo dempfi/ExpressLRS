@@ -9,7 +9,9 @@ public:
     void Begin() override;
     void End() override;
     bool IsArmed() override;
+#ifdef BUILD_SHREW_WIFI
     void FakeDataReceived() override;
+#endif
     void handleInput() override;
 
 private:

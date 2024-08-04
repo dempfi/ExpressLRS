@@ -2,53 +2,14 @@
     "Shrew": {
         "name": "Shrew",
         "rx_2400": {
-            "shrew8244": {
-                "product_name": "Shrew 8244 RX",
-                "lua_name": "Shrew RX",
+            "shrewesc": {
+                "product_name": "ShrewESC RX",
+                "lua_name": "ShrewESC",
                 "layout_file": "Shrew.json",
                 "upload_methods": ["uart", "wifi"],
-                "min_version": "3.3.1",
+                "min_version": "3.4.0",
                 "platform": "esp32",
-                "firmware": "Unified_Shrew8244_2400_RX"
-            },
-            "shrew8231": {
-                "product_name": "Shrew 8231 RX",
-                "lua_name": "Shrew RX",
-                "layout_file": "Shrew.json",
-                "upload_methods": ["uart", "wifi"],
-                "min_version": "3.3.1",
-                "platform": "esp32",
-                "firmware": "Unified_Shrew8231_2400_RX"
-            },
-            "shrew_wifi_esp8": {
-                "product_name": "Shrew Wifi ESP8 RX",
-                "lua_name": "Shrew RX",
-                "layout_file": "Generic 2400.json",
-                "upload_methods": ["uart", "wifi"],
-                "min_version": "3.3.1",
-                "platform": "esp8285",
-                "firmware": "Unified_ShrewWifi_ESP8285_2400_RX"
-            },
-            "shrew_wifi_esp8_pwm": {
-                "product_name": "Shrew Wifi ESP8 RX PWM",
-                "overlay": {
-                    "pwm_outputs":[0, 1, 3]
-                },
-                "lua_name": "Shrew RX",
-                "layout_file": "Generic 2400.json",
-                "upload_methods": ["uart", "wifi"],
-                "min_version": "3.3.1",
-                "platform": "esp8285",
-                "firmware": "Unified_ShrewWifi_ESP8285_2400_RX"
-            },
-            "shrew_wifi_esp32": {
-                "product_name": "Shrew Wifi ESP32 RX",
-                "lua_name": "Shrew RX",
-                "layout_file": "Generic 2400 True Diversity PWM 16.json",
-                "upload_methods": ["uart", "wifi"],
-                "min_version": "3.3.1",
-                "platform": "esp32",
-                "firmware": "Unified_ShrewWifi_ESP32_2400_RX"
+                "firmware": "Unified_ShrewESC_2400_RX"
             }
         },
         "tx_2400": {
@@ -57,7 +18,7 @@
                 "lua_name": "Shrew TX",
                 "layout_file": "Radiomaster Ranger Micro.json",
                 "upload_methods": ["uart", "wifi", "etx"],
-                "min_version": "3.3.1",
+                "min_version": "3.4.0",
                 "platform": "esp32",
                 "firmware": "Unified_ShrewWifi_ESP32_2400_TX"
             }

@@ -563,6 +563,7 @@ void CRSFHandset::handleOutput(int receivedBytes)
     }
 }
 
+#ifdef BUILD_SHREW_WIFI
 void CRSFHandset::FakeDataReceived()
 {
     GoodPktsCount++;
@@ -573,6 +574,7 @@ void CRSFHandset::FakeDataReceived()
     UARTwdtLastChecked = nowMillis;
     if (RCdataCallback) RCdataCallback();
 }
+#endif
 
 void CRSFHandset::duplex_set_RX() const
 {

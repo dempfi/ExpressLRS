@@ -105,7 +105,7 @@ static void servosFailsafe()
             // do nothing
         }
     }
-    #ifdef BUILD_SHREW_HBRIDGE
+    #ifdef PLATFORM_ESP32
     hbridge_failsafe();
     #endif
 }
@@ -118,7 +118,7 @@ static void servosUpdate(unsigned long now)
         newChannelsAvailable = false;
         lastUpdate = now;
 
-        #ifdef BUILD_SHREW_HBRIDGE
+        #ifdef PLATFORM_ESP32
         hbridge_update(now);
         #endif
 
@@ -162,7 +162,7 @@ static void servosUpdate(unsigned long now)
 
 static void initialize()
 {
-    #ifdef BUILD_SHREW_HBRIDGE
+    #ifdef PLATFORM_ESP32
     hbridge_init();
     #endif
 

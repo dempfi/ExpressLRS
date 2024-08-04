@@ -725,6 +725,16 @@ void RxConfig::Load()
         version = m_config.version & ~CONFIG_MAGIC_MASK;
     DBGLN("Config version %u", version);
 
+    if (m_config.flash_discriminator != firmwareOptions.flash_discriminator) {
+        shrew_cfgReset();
+        SetDefaults(false);
+        m_config.version = RX_CONFIG_VERSION | RX_CONFIG_MAGIC;
+        m_modified = true;
+        Commit();
+        ESP.restart();
+        return;
+    }
+
     // If version is current, all done
     if (version == RX_CONFIG_VERSION)
     {
@@ -1105,9 +1115,9 @@ RxConfig::SetDefaults(bool commit)
     m_config.serialProtocol = PROTOCOL_INVERTED_CRSF;
 #endif
 
-#if defined(BUILD_SHREW_HBRIDGE) || defined(BUILD_SHREW_WIFI)
+    m_config.locked_datarate = -1; // automatic
+
     shrew_appendDefaults(this, &m_config);
-#endif
 
     if (commit)
     {
@@ -1237,6 +1247,15 @@ void RxConfig::SetBindStorage(rx_config_bindstorage_t value)
         // If switching away from returnable, revert
         ReturnLoan();
         m_config.bindStorage = value;
+        m_modified = true;
+    }
+}
+
+void RxConfig::SetLockedDatarate(int8_t value)
+{
+    if (m_config.locked_datarate != value)
+    {
+        m_config.locked_datarate = value;
         m_modified = true;
     }
 }

@@ -119,6 +119,7 @@ void AutoDetect::handleInput()
     #endif
 }
 
+#ifdef BUILD_SHREW_WIFI
 void AutoDetect::FakeDataReceived()
 {
     rmt_driver_uninstall(PPM_RMT_CHANNEL);
@@ -130,5 +131,6 @@ void AutoDetect::FakeDataReceived()
     startCRSF();
     handset->FakeDataReceived();
 }
+#endif
 
 #endif

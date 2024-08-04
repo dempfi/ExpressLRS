@@ -230,6 +230,8 @@ typedef struct __attribute__((packed)) {
     uint8_t     teamraceChannel:4,
                 teamracePosition:3,
                 teamracePitMode:1;  // FUTURE: Enable pit mode when disabling model
+
+    int8_t      locked_datarate;
 } rx_config_t;
 
 class RxConfig
@@ -266,6 +268,7 @@ public:
     eFailsafeMode GetFailsafeMode() const { return (eFailsafeMode)m_config.failsafeMode; }
     rx_config_bindstorage_t GetBindStorage() const { return (rx_config_bindstorage_t)m_config.bindStorage; }
     bool IsOnLoan() const;
+    int8_t GetLockedDatarate() const { return m_config.locked_datarate; };
 
     // Setters
     void SetUID(uint8_t* uid);
@@ -289,6 +292,7 @@ public:
     void SetTeamracePosition(uint8_t teamracePosition);
     void SetFailsafeMode(eFailsafeMode failsafeMode);
     void SetBindStorage(rx_config_bindstorage_t value);
+    void SetLockedDatarate(int8_t value);
     void ReturnLoan();
 
 private:

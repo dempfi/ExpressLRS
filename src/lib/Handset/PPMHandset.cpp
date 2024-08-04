@@ -79,11 +79,13 @@ void PPMHandset::handleInput()
     }
 }
 
+#ifdef BUILD_SHREW_WIFI
 void PPMHandset::FakeDataReceived()
 {
     uint32_t now = millis();
     lastPPM = now;
     if (RCdataCallback) RCdataCallback();
 }
+#endif
 
 #endif

@@ -11,7 +11,9 @@ public:
     void End() override;
     bool IsArmed() override;
     void handleInput() override;
+#ifdef BUILD_SHREW_WIFI
     void FakeDataReceived() override;
+#endif
 
 private:
     void migrateTo(Handset *that) const;

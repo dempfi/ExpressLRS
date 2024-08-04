@@ -390,6 +390,7 @@ static void GetConfiguration(AsyncWebServerRequest *request)
     json["config"]["modelid"] = config.GetModelId();
     json["config"]["force-tlm"] = config.GetForceTlmOff();
     json["config"]["vbind"] = config.GetBindStorage();
+    json["config"]["lockeddatarate"] = config.GetLockedDatarate();
     #if defined(GPIO_PIN_PWM_OUTPUTS)
     for (int ch=0; ch<GPIO_PIN_PWM_OUTPUTS_COUNT; ++ch)
     {
@@ -550,6 +551,7 @@ static void UpdateConfiguration(AsyncWebServerRequest *request, JsonVariant &jso
   config.SetForceTlmOff(forceTlm != 0);
 
   config.SetBindStorage((rx_config_bindstorage_t)(json["vbind"] | 0));
+  config.SetLockedDatarate(json["lockeddatarate"] | -1);
   JsonUidToConfig(json);
 
   #if defined(GPIO_PIN_PWM_OUTPUTS)
