@@ -23,6 +23,6 @@
     "ledidx_rgb_boot": [0],
 
     "vbat": 4,
-    "vbat_offset": 12,
-    "vbat_scale": 410
+    "vbat_offset": 0,
+    "vbat_scale": 14
 }
