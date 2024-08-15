@@ -44,15 +44,15 @@ void hbridge_init(void)
 
     esp_chip_info_t chip_info;
     esp_chip_info(&chip_info);
-    if (chip_info.revision == 3) {
+    if (chip_info.revision == 3) { // PICO-V3
         hbridge_pin_a1 = 16;
         hbridge_pin_a2 = 17;
         hbridge_pin_b1 = 13;
         hbridge_pin_b2 = 27;
     }
-    else {
-        hbridge_pin_a1 = 10;
-        hbridge_pin_a2 = 9;
+    else { // PICO-D4
+        hbridge_pin_a1 = 9;
+        hbridge_pin_a2 = 10;
         if (firmwareOptions.shrew <= 2) {
             hbridge_pin_b1 = 13;
             hbridge_pin_b2 = 27;
