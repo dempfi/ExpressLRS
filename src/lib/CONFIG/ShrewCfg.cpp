@@ -17,6 +17,11 @@ void shrew_appendDefaults(RxConfig* cfg, rx_config_t* rxcfg)
             pwm->val.inputChannel += 2;
         }
         pwm->val.failsafeMode = PWMFAILSAFE_NO_PULSES;
+        #if defined(PLATFORM_ESP32)
+        if (firmwareOptions.shrew_dshot && ((ch < 2 && firmwareOptions.shrew != 0) || firmwareOptions.shrew == 0)) {
+            pwm->val.mode = somDShot;
+        }
+        #endif
     }
     #endif
 

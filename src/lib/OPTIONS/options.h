@@ -40,6 +40,7 @@ typedef struct _options {
     bool        is_airport:1;
 
     bool        permanent_binding:1;
+    bool        shrew_dshot:1;
     int8_t      locked_datarate;
     uint8_t     shrew;
 #endif
