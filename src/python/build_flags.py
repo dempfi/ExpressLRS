@@ -63,10 +63,20 @@ def process_json_flag(define):
                 json_flags['rcvr-uart-baud'] = int(dequote(parts.group(2)))
             else:
                 json_flags['airport-uart-baud'] = int(dequote(parts.group(2)))
+        if parts.group(1) == "shrew":
+            parts = re.search(r"-D(.*)\s*=\s*\"?([0-9]+).*\"?$", define)
+            json_flags['shrew'] = int(dequote(parts.group(2)))
+        if parts.group(1) == "FIXED_DATA_RATE":
+            parts = re.search(r"-D(.*)\s*=\s*\"?([0-9]+).*\"?$", define)
+            json_flags['fixed-data-rate'] = int(dequote(parts.group(2)))
     if define == "-DUNLOCK_HIGHER_POWER"  and not isRX:
         json_flags['unlock-higher-power'] = True
     if define == "-DLOCK_ON_FIRST_CONNECTION" and isRX:
         json_flags['lock-on-first-connection'] = True
+    if define == "-DSHREWDSHOT" and isRX:
+        json_flags['shrew-dshot'] = True
+    if define == "-DPERMANENT_BINDING" and isRX:
+        json_flags['permanent-binding'] = True
 
 def process_build_flag(define):
     if define.startswith("-D") or define.startswith("!-D"):
