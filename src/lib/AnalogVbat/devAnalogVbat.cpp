@@ -37,9 +37,7 @@ void Vbat_enableSlowUpdate(bool enable)
 
 static int start()
 {
-    #ifndef HBRIDGE_DRV8244
     if (GPIO_ANALOG_VBAT == UNDEF_PIN)
-    #endif
     {
         return DURATION_NEVER;
     }
@@ -94,9 +92,7 @@ static void reportVbat()
 
 static int timeout()
 {
-    #ifndef HBRIDGE_DRV8244
     if (GPIO_ANALOG_VBAT == UNDEF_PIN || telemetry.GetCrsfBatterySensorDetected())
-    #endif
     {
         return DURATION_NEVER;
     }
@@ -107,7 +103,15 @@ static int timeout()
     // in normal mode only the final value is adjusted to save CPU cycles
     if (vbatAdcUnitCharacterics)
         adc = esp_adc_cal_raw_to_voltage(adc, vbatAdcUnitCharacterics);
-    DBGLN("$ADC,%u", adc);
+
+    int32_t vbat;
+    // For negative offsets, anything between abs(OFFSET) and 0 is considered 0
+    if (ANALOG_VBAT_OFFSET < 0 && adc <= -ANALOG_VBAT_OFFSET)
+        vbat = 0;
+    else
+        vbat = ((int32_t)adc - ANALOG_VBAT_OFFSET) * 100 / ANALOG_VBAT_SCALE;
+
+    DBGLN("$ADC,  %u  ,  %u", adc, vbat);
 #endif
 
     unsigned int idx = vbatSmooth.add(adc);

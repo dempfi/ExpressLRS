@@ -5,6 +5,9 @@
 #ifdef BUILD_SHREW_WIFI
 #include "ShrewWifi.h"
 #endif
+#ifdef BUILD_SHREW_AM32CONFIG
+#include "ShrewAM32.h"
+#endif
 
 #include "deferred.h"
 
@@ -179,6 +182,12 @@ static struct {
   {"/shrew.html", "text/html", (uint8_t *)SHREW_HTML, sizeof(SHREW_HTML)},
   {"/shrew.js", "text/javascript", (uint8_t *)SHREW_JS, sizeof(SHREW_JS)},
   {"/joy.js", "text/javascript", (uint8_t *)JOY_JS, sizeof(JOY_JS)},
+  #endif
+
+  #ifdef BUILD_SHREW_AM32CONFIG
+  {"/am32.html", "text/html", (uint8_t *)AM32_HTML, sizeof(AM32_HTML)},
+  {"/am32.js", "text/javascript", (uint8_t *)AM32_JS, sizeof(AM32_JS)},
+  {"/ihex.js", "text/javascript", (uint8_t *)IHEX_JS, sizeof(IHEX_JS)},
   #endif
 
 #if defined(RADIO_LR1121)
@@ -1154,6 +1163,9 @@ static void startServices()
 
 #ifdef BUILD_SHREW_WIFI
   shrew_setupServer(&server);
+#endif
+#ifdef BUILD_SHREW_AM32CONFIG
+  am32_setupServer(&server);
 #endif
 
   server.onNotFound(WebUpdateHandleNotFound);

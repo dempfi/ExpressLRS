@@ -1,3 +1,4 @@
+#ifdef BUILD_SHREW_HBRIDGE
 #if (defined(GPIO_PIN_PWM_OUTPUTS) && defined(PLATFORM_ESP32))
 
 #include "hbridge.h"
@@ -152,4 +153,5 @@ void hbridge_update(unsigned long now)
     }
 }
 
+#endif
 #endif

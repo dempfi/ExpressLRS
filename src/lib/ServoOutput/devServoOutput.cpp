@@ -6,7 +6,9 @@
 #include "config.h"
 #include "logging.h"
 #include "rxtx_intf.h"
+#ifdef BUILD_SHREW_HBRIDGE
 #include "hbridge.h"
+#endif
 
 static int8_t servoPins[PWM_MAX_CHANNELS];
 static pwm_channel_t pwmChannels[PWM_MAX_CHANNELS];
@@ -105,7 +107,7 @@ static void servosFailsafe()
             // do nothing
         }
     }
-    #ifdef PLATFORM_ESP32
+    #if defined(BUILD_SHREW_HBRIDGE) && defined(PLATFORM_ESP32)
     hbridge_failsafe();
     #endif
 }
@@ -118,7 +120,7 @@ static void servosUpdate(unsigned long now)
         newChannelsAvailable = false;
         lastUpdate = now;
 
-        #ifdef PLATFORM_ESP32
+        #if defined(BUILD_SHREW_HBRIDGE) && defined(PLATFORM_ESP32)
         hbridge_update(now);
         #endif
 
@@ -162,7 +164,7 @@ static void servosUpdate(unsigned long now)
 
 static void initialize()
 {
-    #ifdef PLATFORM_ESP32
+    #if defined(BUILD_SHREW_HBRIDGE) && defined(PLATFORM_ESP32)
     hbridge_init();
     #endif
 
