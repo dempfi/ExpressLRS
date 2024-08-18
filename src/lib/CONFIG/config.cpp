@@ -729,6 +729,8 @@ void RxConfig::Load()
         shrew_cfgReset();
         SetDefaults(false);
         m_config.version = RX_CONFIG_VERSION | RX_CONFIG_MAGIC;
+        m_config.flash_discriminator = firmwareOptions.flash_discriminator;
+        SetUID(firmwareOptions.uid);
         m_modified = true;
         Commit();
         ESP.restart();

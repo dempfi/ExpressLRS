@@ -30,13 +30,14 @@ void hbridge_init(void)
         return;
     }
     if (firmwareOptions.shrew <= 0) {
+        DBGLN("hbridge not shrew");
         return;
     }
 
-    if (firmwareOptions.shrew == 2 || firmwareOptions.shrew == 4) {
+    if (firmwareOptions.shrew == 2 || firmwareOptions.shrew == 4) { // mega/pro
         hbridge_sleep_val = 1000;
     }
-    else {
+    else { // mini/lite
         hbridge_sleep_val = 0;
     }
 
@@ -77,6 +78,7 @@ void hbridge_init(void)
     hbridge_channels[HBRIDGE_IDX_B2] = PWM.allocate(hbridge_pin_b2, HBRIDGE_PWM_FREQ);
     has_init = true;
     hbridge_failsafe();
+    DBGLN("hbridge finished init");
 }
 
 void hbridge_failsafe(void)

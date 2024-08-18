@@ -63,7 +63,7 @@ def process_json_flag(define):
                 json_flags['rcvr-uart-baud'] = int(dequote(parts.group(2)))
             else:
                 json_flags['airport-uart-baud'] = int(dequote(parts.group(2)))
-        if parts.group(1) == "shrew":
+        if parts.group(1) == "SHREW":
             parts = re.search(r"-D(.*)\s*=\s*\"?([0-9]+).*\"?$", define)
             json_flags['shrew'] = int(dequote(parts.group(2)))
         if parts.group(1) == "FIXED_DATA_RATE":
