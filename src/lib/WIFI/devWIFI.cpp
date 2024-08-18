@@ -18,6 +18,7 @@
 
 #if defined(PLATFORM_ESP32)
 #include <WiFi.h>
+#include "esp_wifi.h"
 #include <ESPmDNS.h>
 #include <Update.h>
 #include <esp_partition.h>
@@ -1211,6 +1212,9 @@ static void HandleWebUpdate()
       case WIFI_AP:
         DBGLN("Changing to AP mode");
         WiFi.disconnect();
+        #ifdef BUILD_SHREW_LOWPOWERWIFI
+        setCpuFrequencyMhz(80);
+        #endif
         wifiMode = WIFI_AP;
         #if defined(PLATFORM_ESP32)
         WiFi.setHostname(wifi_hostname); // hostname must be set before the mode is set to STA
@@ -1225,9 +1229,15 @@ static void HandleWebUpdate()
         WiFi.setPhyMode(WIFI_PHY_MODE_11N);
         #elif defined(PLATFORM_ESP32)
         WiFi.setTxPower(WIFI_POWER_19_5dBm);
+        #ifdef BUILD_SHREW_LOWPOWERWIFI
+        WiFi.setTxPower(WIFI_POWER_MINUS_1dBm);
+        #endif
         #endif
         WiFi.softAPConfig(ipAddress, ipAddress, netMsk);
         WiFi.softAP(wifi_ap_ssid, wifi_ap_password);
+        #ifdef BUILD_SHREW_LOWPOWERWIFI
+        esp_wifi_set_ps(WIFI_PS_MIN_MODEM);
+        #endif
         startServices();
         break;
       case WIFI_STA:
