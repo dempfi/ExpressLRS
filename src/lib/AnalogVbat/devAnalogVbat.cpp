@@ -78,7 +78,7 @@ static int start()
     return VBAT_SAMPLE_INTERVAL;
 }
 
-static void reportVbat()
+static int32_t calcVbat()
 {
     uint32_t adc = vbatSmooth.calc();
 #if defined(PLATFORM_ESP32) && !defined(DEBUG_VBAT_ADC)
@@ -104,6 +104,12 @@ static void reportVbat()
         vbat = shrewvbat_get(adc);
     }
 #endif
+    return vbat;
+}
+
+static void reportVbat()
+{
+    int32_t vbat = calcVbat();
 
     CRSF_MK_FRAME_T(crsf_sensor_battery_t) crsfbatt = { 0 };
     // Values are MSB first (BigEndian)
@@ -127,26 +133,7 @@ static int timeout()
     // in normal mode only the final value is adjusted to save CPU cycles
     if (vbatAdcUnitCharacterics)
         adc = esp_adc_cal_raw_to_voltage(adc, vbatAdcUnitCharacterics);
-
-    int32_t vbat;
-#ifdef BUILD_SHREW_ADCLUT
-    if (use_lut == false)
-#endif
-    {
-    // For negative offsets, anything between abs(OFFSET) and 0 is considered 0
-    if (ANALOG_VBAT_OFFSET < 0 && adc <= -ANALOG_VBAT_OFFSET)
-        vbat = 0;
-    else
-        vbat = ((int32_t)adc - ANALOG_VBAT_OFFSET) * 100 / ANALOG_VBAT_SCALE;
-    }
-#ifdef BUILD_SHREW_ADCLUT
-    else
-    {
-        vbat = shrewvbat_get(adc);
-    }
-#endif
-
-    DBGLN("$ADC,  %u  ,  %u", adc, vbat);
+    DBGLN("$ADC,%u,%d", adc, calcVbat());
 #endif
 
     unsigned int idx = vbatSmooth.add(adc);
