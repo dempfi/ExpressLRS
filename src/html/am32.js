@@ -1284,6 +1284,7 @@ async function testesc_start()
             title: 'Error',
             message: 'unable to start test with current configuration'
         });
+        testesc_stop();
         return;
     }
     try {
@@ -1318,7 +1319,9 @@ function btn_testesc_onclick() {
     if (testesc_started == false) {
         testesc_start();
     }
-    testesc_disable_rest();
+    else {
+        testesc_stop();
+    }
 }
 
 async function testesc_tick_a() {
