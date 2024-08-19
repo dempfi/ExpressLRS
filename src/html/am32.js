@@ -1,35 +1,35 @@
 function am32_init()
 {
-    document.getElementById("btn_readbinfile").addEventListener("change", readBinFile, false);
-    document.getElementById("tbl_checkboxes").innerHTML      = make_all_checkboxes(plain_checkboxes);
-    document.getElementById("tbl_sliders").innerHTML         = make_all_sliders(plain_sliders);
-    document.getElementById("tbl_extracheckboxes").innerHTML = make_all_checkboxes(extra_checkboxes);
-    document.getElementById("tbl_extrasliders").innerHTML    = make_all_sliders(extra_sliders);
-    document.getElementById("btn_fwupdate").addEventListener("change", fwupdate, false);
+    getEleById("btn_readbinfile").addEventListener("change", readBinFile, false);
+    getEleById("tbl_checkboxes").innerHTML      = make_all_checkboxes(plain_checkboxes);
+    getEleById("tbl_sliders").innerHTML         = make_all_sliders(plain_sliders);
+    getEleById("tbl_extracheckboxes").innerHTML = make_all_checkboxes(extra_checkboxes);
+    getEleById("tbl_extrasliders").innerHTML    = make_all_sliders(extra_sliders);
+    getEleById("btn_fwupdate").addEventListener("change", fwupdate, false);
 
-    document.getElementById("chk_drivebyrpm").addEventListener('change', function() {
+    getEleById("chk_drivebyrpm").addEventListener('change', function() {
         enabledisable_elements_with("_speedctrl", this.checked);
     });
-    document.getElementById("chk_variablepwm").addEventListener('change', function() {
+    getEleById("chk_variablepwm").addEventListener('change', function() {
         enabledisable_elements_with("_pwmfrequency", !this.checked);
     });
-    document.getElementById("chk_brushedmode").addEventListener('change', function() {
+    getEleById("chk_brushedmode").addEventListener('change', function() {
         enabledisable_elements_with("chk_dualbrushedmode", this.checked);
         if (this.checked == false) {
-            document.getElementById("chk_dualbrushedmode").checked = false;
-            document.getElementById("chk_dualbrushedmode").dispatchEvent(new Event('change'));
+            getEleById("chk_dualbrushedmode").checked = false;
+            getEleById("chk_dualbrushedmode").dispatchEvent(new Event('change'));
         }
     });
-    document.getElementById("chk_lowvoltagecutoff").addEventListener('change', function() {
+    getEleById("chk_lowvoltagecutoff").addEventListener('change', function() {
         enabledisable_elements_with("txt_lowvoltagecutoff", this.checked);
         enabledisable_elements_with("sld_lowvoltagecutoff", this.checked);
     });
-    document.getElementById("chk_dualbrushedmode").addEventListener('change', function() {
+    getEleById("chk_dualbrushedmode").addEventListener('change', function() {
         if (this.checked) {
-            document.getElementById("chk_brushedmode").checked = true;
-            let inputmode = document.getElementById("drop_rcinput").value;
+            getEleById("chk_brushedmode").checked = true;
+            let inputmode = getEleById("drop_rcinput").value;
             if (inputmode != "x_3") {
-                document.getElementById("drop_rcinput").value = "x_3";
+                getEleById("drop_rcinput").value = "x_3";
             }
             drop_rcinput_onchange();
         }
@@ -72,7 +72,7 @@ async function am32_init2()
         data = "PWM 1 2,PWM 3 4,SERRX 5, SERTX 6";
     }
     let pin_strs = data.split(',');
-    let select = document.getElementById('drop_selpin');
+    let select = getEleById('drop_selpin');
     for (let pin_str of pin_strs) {
         try {
             let opt = document.createElement('option');
@@ -98,26 +98,30 @@ async function am32_init2()
         catch (e) {
         }
     }
-    document.getElementById("div_loading").style.display = "none";
-    document.getElementById("div_maincontent").style.display = "block";
-    document.getElementById("div_testesc").style.display = "block";
-    document.getElementById("div_escconnect").style.display = "block";
+    getEleById("div_loading").style.display = "none";
+    getEleById("div_maincontent").style.display = "block";
+    getEleById("div_testesc").style.display = "block";
+    getEleById("div_escconnect").style.display = "block";
     if (!isRunningLocally())
     {
-        //document.getElementById("btn_serwrite").style.display = "none";
-        document.getElementById("btn_serwrite").disabled = true;
-        document.getElementById("div_maincontent").style.display = "none";
-        document.getElementById("div_testesc").style.display = "none";
-        document.getElementById("fld_crsfchannels").style.display = "none";
-        document.getElementById("fld_crsf2channels").style.display = "none";
-        document.getElementById("div_experimentalextras").style.display = "none";
+        //getEleById("btn_serwrite").style.display = "none";
+        getEleById("btn_serwrite").disabled = true;
+        getEleById("div_maincontent").style.display = "none";
+        getEleById("div_testesc").style.display = "none";
+        getEleById("fld_crsfchannels").style.display = "none";
+        getEleById("fld_crsf2channels").style.display = "none";
+        getEleById("div_experimentalextras").style.display = "none";
     }
-    document.getElementById("chk_drivebyrpm").dispatchEvent(new Event('change'));
-    document.getElementById("chk_variablepwm").dispatchEvent(new Event('change'));
-    document.getElementById("chk_lowvoltagecutoff").dispatchEvent(new Event('change'));
-    document.getElementById("chk_brushedmode").dispatchEvent(new Event('change'));
-    document.getElementById("chk_dualbrushedmode").dispatchEvent(new Event('change'));
+    getEleById("chk_drivebyrpm").dispatchEvent(new Event('change'));
+    getEleById("chk_variablepwm").dispatchEvent(new Event('change'));
+    getEleById("chk_lowvoltagecutoff").dispatchEvent(new Event('change'));
+    getEleById("chk_brushedmode").dispatchEvent(new Event('change'));
+    getEleById("chk_dualbrushedmode").dispatchEvent(new Event('change'));
     drop_rcinput_onchange();
+}
+
+function getEleById(i) {
+    return document.getElementById(i);
 }
 
 let mcu_data = [
@@ -169,8 +173,8 @@ let plain_checkboxes = [
 let extra_checkboxes = [
     ["Automatic Timing",       false, 53, ],
     ["Drive by RPM",           false, 54, ],
-    ["Brushed Mode",           false, 64, ],
-    ["Dual Brushed Mode",      false, 69, ],
+    ["Brushed Mode",           false, 64, 85],
+    ["Dual Brushed Mode",      false, 69, 85],
 ];
 
 let plain_sliders = [
@@ -297,16 +301,9 @@ function txt_onchange(i)
     {
         if (i == text_to_id(sld[0]))
         {
-            let v = document.getElementById("txt_" + text_to_id(sld[0])).value;
-            if (v < sld[2])
-            {
-                v = sld[2];
-            }
-            if (v > sld[3])
-            {
-                v = sld[3];
-            }
-            document.getElementById("sld_" + text_to_id(sld[0])).value = v;
+            let v = getEleById("txt_" + text_to_id(sld[0])).value;
+            v = Math.max(sld[3], Math.min(sld[2], v));
+            getEleById("sld_" + text_to_id(sld[0])).value = v;
         }
     }
     ui_locked = false;
@@ -322,16 +319,9 @@ function sld_onchange(i)
     {
         if (i == text_to_id(sld[0]))
         {
-            let v = document.getElementById("sld_" + text_to_id(sld[0])).value;
-            if (v < sld[2])
-            {
-                v = sld[2];
-            }
-            if (v > sld[3])
-            {
-                v = sld[3];
-            }
-            document.getElementById("txt_" + text_to_id(sld[0])).value = v;
+            let v = getEleById("sld_" + text_to_id(sld[0])).value;
+            v = Math.max(sld[3], Math.min(sld[2], v));
+            getEleById("txt_" + text_to_id(sld[0])).value = v;
         }
     }
     ui_locked = false;
@@ -339,35 +329,40 @@ function sld_onchange(i)
 
 function drop_rcinput_onchange()
 {
-    let v = document.getElementById("drop_rcinput").value;
+    let v = getEleById("drop_rcinput").value;
     let can = isRunningLocally();
     if (can == false)
     {
         if (current_chip != null)
         {
+            // only the latest experimental versions can see the extra inputs for CRSF channel
             if (current_chip["fw_version_major"] >= 3 && current_chip["eeprom_layout"] >= 5) {
+                can = true;
+            }
+            if (getEleById("chk_experimentalupgrade").checked) {
                 can = true;
             }
         }
     }
 
-    if (can && v == "x_3") {
-        document.getElementById("fld_crsfchannels").style.display = "block";
-        if (document.getElementById("chk_dualbrushedmode").checked) {
-            document.getElementById("fld_crsf2channels").style.display = "block";
+    if (can && v == "x_3") { // serial input enforced
+        getEleById("fld_crsfchannels").style.display = "block";
+        if (getEleById("chk_dualbrushedmode").checked) {
+            getEleById("fld_crsf2channels").style.display = "block";
         }
         else {
-            document.getElementById("fld_crsf2channels").style.display = "none";
+            getEleById("fld_crsf2channels").style.display = "none";
         }
     }
-    else {
-        document.getElementById("fld_crsfchannels").style.display = "none";
-        document.getElementById("fld_crsf2channels").style.display = "none";
+    else { // serial input not enforced
+        getEleById("fld_crsfchannels").style.display = "none";
+        getEleById("fld_crsf2channels").style.display = "none";
     }
 }
 
 function enabledisable_elements_with(name, sts)
 {
+    // this function is used to quickly enable or disable any elements matching *_speedcrtl*
     let inputs = document.getElementsByTagName('input');
     for (var i = 0; i < inputs.length; i++) {
         // Check if the ID contains the search string
@@ -389,7 +384,7 @@ function readBinFile(e)
         let barr = new Uint8Array(e.target.result);
         readBin(barr, true);
         console.log("Local binary file loaded");
-        document.getElementById("btn_readbinfile").value = "";
+        getEleById("btn_readbinfile").value = "";
     };
     reader.readAsArrayBuffer(file);
 }
@@ -397,80 +392,81 @@ function readBinFile(e)
 function readBin(barr, isFile)
 {
     let dbg_txt = "";
+    let skip_form_fill = false;
 
     try {
-    if (barr[0] == 0 || barr[0] == 0xFF) {
-        dbg_txt += "warning: EEPROM appears empty\r\n";
-    }
-    if (barr[1] == 0 || barr[1] == 0xFF) {
-        dbg_txt += "warning: EEPROM has no layout indicator\r\n";
-    }
-    if (barr[2] == 0 || barr[2] == 0xFF) {
-        dbg_txt += "warning: bootloader version invalid\r\n";
-    }
-
-    if (isFile == false)
-    {
-        if (current_chip == null) {
-            current_chip = {};
+        if (barr[0] == 0 || barr[0] == 0xFF) {
+            dbg_txt += "warning: EEPROM appears empty\r\n";
+            if (isFile == false) {
+                skip_form_fill = true;
+            }
         }
-        current_chip["eeprom_layout"] = barr[1];
-        current_chip["bootloader_version"] = barr[2];
-        current_chip["fw_version_major"] = barr[3];
-        current_chip["fw_version_minor"] = barr[4];
-    }
+        if (barr[1] == 0 || barr[1] == 0xFF) {
+            dbg_txt += "warning: EEPROM has no layout indicator\r\n";
+        }
+        if (barr[2] == 0 || barr[2] == 0xFF) {
+            dbg_txt += "warning: bootloader version invalid\r\n";
+        }
 
-    for (let i = 0; i < all_checkboxes.length; i++)
-    {
-        let c = all_checkboxes[i];
-        let ele = document.getElementById("chk_" + text_to_id(c[0]));
-        ele.checked = barr[c[2]] != 0;
-    }
-
-    for (let i = 0; i < all_sliders.length; i++)
-    {
-        let sld = all_sliders[i];
-        let bidx = sld[6];
-        let eles = document.getElementById("sld_" + text_to_id(sld[0]));
-        let elet = document.getElementById("txt_" + text_to_id(sld[0]));
-        let val = barr[bidx];
-        val *= sld[4];
-        val += sld[5];
-        if (val < sld[2] || val > sld[3])
+        if (isFile == false)
         {
-            dbg_txt += "\"" + sld[0] + "\" value " + val + " is out of range\r\n";
-            if (val < sld[2])
-            {
-                val = sld[2];
+            if (current_chip == null) {
+                current_chip = {};
             }
-            if (val > sld[3])
+            current_chip["eeprom_0"] = barr[0];
+            current_chip["eeprom_layout"] = barr[1];
+            current_chip["bootloader_version"] = barr[2];
+            current_chip["fw_version_major"] = barr[3];
+            current_chip["fw_version_minor"] = barr[4];
+        }
+
+        if (skip_form_fill == false)
+        {
+            for (let i = 0; i < all_checkboxes.length; i++)
             {
-                val = sld[3];
+                let c = all_checkboxes[i];
+                let ele = getEleById("chk_" + text_to_id(c[0]));
+                ele.checked = barr[c[2]] != 0;
             }
+
+            for (let i = 0; i < all_sliders.length; i++)
+            {
+                let sld = all_sliders[i];
+                let bidx = sld[6];
+                let eles = getEleById("sld_" + text_to_id(sld[0]));
+                let elet = getEleById("txt_" + text_to_id(sld[0]));
+                let val = barr[bidx];
+                val *= sld[4];
+                val += sld[5];
+                if (val < sld[2] || val > sld[3])
+                {
+                    dbg_txt += "\"" + sld[0] + "\" value " + val + " is out of range\r\n";
+                    val = Math.min(sld[3], Math.max(sld[2], val));
+                }
+                elet.value = val;
+                txt_onchange(i);
+            }
+
+            let drop_rcinput = getEleById("drop_rcinput");
+            drop_rcinput.value = "x_" + barr[46].toString();
+
+            let txt_devicename = getEleById("txt_devicename");
+            let dev_name = "";
+            for (let i = 0; i < 12; i++)
+            {
+                let x = barr[5 + i];
+                if (x == 0 || x == 0xFF) {
+                    break;
+                }
+                dev_name += String.fromCharCode(x);
+            }
+            txt_devicename.value = dev_name;
+
+            let txt_crsfchannel = getEleById("txt_crsfchannel");
+            txt_crsfchannel.value = barr[65] + 1;
+            let txt_crsf2channel = getEleById("txt_crsf2channel");
+            txt_crsf2channel.value = barr[70] + 1;
         }
-        elet.value = val;
-        txt_onchange(i);
-    }
-
-    let drop_rcinput = document.getElementById("drop_rcinput");
-    drop_rcinput.value = "x_" + barr[46].toString();
-
-    let txt_devicename = document.getElementById("txt_devicename");
-    let dev_name = "";
-    for (let i = 0; i < 12; i++)
-    {
-        let x = barr[5 + i];
-        if (x == 0 || x == 0xFF) {
-            break;
-        }
-        dev_name += String.fromCharCode(x);
-    }
-    txt_devicename.value = dev_name;
-
-    let txt_crsfchannel = document.getElementById("txt_crsfchannel");
-    txt_crsfchannel.value = barr[65] + 1;
-    let txt_crsf2channel = document.getElementById("txt_crsf2channel");
-    txt_crsf2channel.value = barr[70] + 1;
 
     }
     catch (e) {
@@ -493,48 +489,74 @@ function generateBin()
     }
     buffer8[0] = 1; // indicate filled
 
+    if (getEleById("chk_experimentalupgrade").checked) {
+        if (current_chip == null) {
+            current_chip = {};
+        }
+        if (current_chip.hasOwnProperty("eeprom_layout")) {
+            if (current_chip["eeprom_layout"] < 5) {
+                current_chip["eeprom_layout"] = 5;
+            }
+        }
+        else {
+            current_chip["eeprom_layout"] = 5;
+        }
+        if (current_chip.hasOwnProperty("fw_version_major")) {
+            if (current_chip["fw_version_major"] < 3) {
+                current_chip["fw_version_major"] = 3;
+                current_chip["fw_version_minor"] = 0;
+            }
+            if (current_chip.hasOwnProperty("fw_version_minor")) {
+                current_chip["fw_version_minor"] = 0;
+            }
+        }
+        else {
+            current_chip["fw_version_major"] = 3;
+            current_chip["fw_version_minor"] = 0;
+        }
+        if (!current_chip.hasOwnProperty("bootloader_version")) {
+            current_chip["bootloader_version"] = 0;
+        }
+    }
+
     if (current_chip != null) {
         buffer8[1] = current_chip["eeprom_layout"];
         buffer8[2] = current_chip["bootloader_version"];
         buffer8[3] = current_chip["fw_version_major"];
         buffer8[4] = current_chip["fw_version_minor"];
+        fill_version_box();
+    }
+    else {
+        buffer8[1] = 4;
+        buffer8[2] = 0;
+        buffer8[3] = 1;
+        buffer8[4] = 0;
     }
 
     for (let i = 0; i < all_checkboxes.length; i++)
     {
         let c = all_checkboxes[i];
-        let ele = document.getElementById("chk_" + text_to_id(c[0]));
-        buffer8[c[2]] = ele.checked ? 1 : 0;
-        if (c[2] == 64 && ele.checked) {
-            buffer8[c[2]] = 85;
-        }
-        if (c[2] == 69 && ele.checked) {
-            buffer8[c[2]] = 85;
-        }
+        let ele = getEleById("chk_" + text_to_id(c[0]));
+        buffer8[c[2]] = ele.checked ? (c.length <= 3 ? 1 : c[3]) : 0;
     }
     for (let i = 0; i < all_sliders.length; i++)
     {
         let sld = all_sliders[i];
-        let ele = document.getElementById("txt_" + text_to_id(sld[0]));
+        let ele = getEleById("txt_" + text_to_id(sld[0]));
         let val = ele.value;
         val -= sld[5];
         val /= sld[4];
         if (val < 0 || val > 255) {
             dbg_txt += "\"" + sld[0] + "\" byte value " + val + " is overflowing\r\n";
-            if (val < 0) {
-                val = 0;
-            }
-            if (val > 255) {
-                val = 255;
-            }
+            val = Math.min(0, Math.max(255, val));
         }
         buffer8[sld[6]] = Math.round(val);
     }
 
-    let drop_rcinput = document.getElementById("drop_rcinput");
+    let drop_rcinput = getEleById("drop_rcinput");
     buffer8[46] = Math.round(parseInt(drop_rcinput.value.substring(2)));
 
-    let txt_devicename = document.getElementById("txt_devicename");
+    let txt_devicename = getEleById("txt_devicename");
     let i;
     for (i = 0; i < 12 && i < txt_devicename.value.length; i++)
     {
@@ -545,9 +567,9 @@ function generateBin()
         buffer8[5 + i] = 0;
     }
 
-    let txt_crsfchannel = document.getElementById("txt_crsfchannel");
+    let txt_crsfchannel = getEleById("txt_crsfchannel");
     buffer8[65] = txt_crsfchannel.value - 1;
-    let txt_crsf2channel = document.getElementById("txt_crsf2channel");
+    let txt_crsf2channel = getEleById("txt_crsf2channel");
     buffer8[70] = txt_crsf2channel.value - 1;
 
     if (dbg_txt.length > 0) {
@@ -581,8 +603,50 @@ function getBinFileName(fname, default_name)
 
 function saveBinFile()
 {
-    let fname = document.getElementById("txt_savefname").value;
+    let fname = getEleById("txt_savefname").value;
     fn_saveByteArray(generateBin(), getBinFileName(fname, "am32-eeprom.bin"));
+}
+
+function fill_version_box()
+{
+    if (current_chip != null)
+    {
+        getEleById("span_firmwareversion").innerHTML = `V${current_chip["fw_version_major"]}.${current_chip["fw_version_minor"]} EL${current_chip["eeprom_layout"]} BL${current_chip["bootloader_version"]}`;
+    }
+}
+
+function offer_experimental()
+{
+    if (current_chip != null)
+    {
+        if (current_chip["fw_version_major"] >= 3 && current_chip["eeprom_layout"] >= 5) {
+            getEleById("div_experimentalextras").style.display = "block";
+            getEleById("span_experimentalupgrade").style.display = "none";
+            getEleById("chk_experimentalupgrade").checked = true;
+        }
+        else {
+            getEleById("div_experimentalextras").style.display = "none";
+            getEleById("span_experimentalupgrade").style.display = "block";
+            getEleById("chk_experimentalupgrade").checked = false;
+        }
+    }
+    else
+    {
+        getEleById("div_experimentalextras").style.display = "none";
+        getEleById("span_experimentalupgrade").style.display = "block";
+        getEleById("chk_experimentalupgrade").checked = false;
+    }
+}
+
+function chk_experimentalupgrade_onchange()
+{
+    let c = getEleById("chk_experimentalupgrade").checked;
+    if (c) {
+        getEleById("div_experimentalextras").style.display = "block";
+    }
+    else {
+        getEleById("div_experimentalextras").style.display = "none";
+    }
 }
 
 let filename_isValid=(function(){
@@ -870,7 +934,7 @@ async function serport_ajax_flashRead(start_addr, read_len, chunk_size, addr_mul
         }
         adr += chunk_size;
         let percentage = Math.max(0, Math.min(100, Math.round(buffer.length * 100 / read_len)));
-        document.getElementById("div_progress").innerHTML = `Verifying... ${percentage}% complete`;
+        getEleById("div_progress").innerHTML = `Verifying... ${percentage}% complete`;
     }
     return buffer;
 }
@@ -881,8 +945,8 @@ async function serport_ajax_flashWrite(contents, start_addr, write_len, chunk_si
     let i = 0;
     let adr = start_addr;
     if (write_len > (chunk_size * 4)) {
-        document.getElementById("div_progress").style.display = "block";
-        document.getElementById("div_progress").innerHTML = `Flash Writing...`;
+        getEleById("div_progress").style.display = "block";
+        getEleById("div_progress").innerHTML = `Flash Writing...`;
     }
     while (i < write_len)
     {
@@ -895,7 +959,7 @@ async function serport_ajax_flashWrite(contents, start_addr, write_len, chunk_si
         i += chunk_size;
         adr += chunk_size;
         let percentage = Math.max(0, Math.min(100, Math.round(i * 100 / write_len)));
-        document.getElementById("div_progress").innerHTML = `Flash Writing... ${percentage}% complete`;
+        getEleById("div_progress").innerHTML = `Flash Writing... ${percentage}% complete`;
     }
 }
 
@@ -908,13 +972,13 @@ async function btn_connect_onclick_a()
 {
     try
     {
-    document.getElementById("div_progress").style.display = "none";
-    document.getElementById("drop_selpin").disabled = true;
-    document.getElementById("btn_connect").disabled = true;
-    document.getElementById("btn_serwrite").disabled = true;
-    document.getElementById("btn_fwupdate").disabled = true;
+    getEleById("div_progress").style.display = "none";
+    getEleById("drop_selpin").disabled = true;
+    getEleById("btn_connect").disabled = true;
+    getEleById("btn_serwrite").disabled = true;
+    getEleById("btn_fwupdate").disabled = true;
     let data;
-    let pinnum = document.getElementById("drop_selpin").value;
+    let pinnum = getEleById("drop_selpin").value;
     if (!isRunningLocally()) {
         data = await serport_ajax("setting pin low", 1, pinnum);
         await new Promise(resolve => setTimeout(resolve, 2000));
@@ -947,52 +1011,27 @@ async function btn_connect_onclick_a()
         if (current_chip != null) {
             current_chip["mcu"] = mcu;
         }
+        fill_version_box();
+        offer_experimental();
 
-        data = await serport_ajax_flashRead(0x10C0, 8, 8, mcu["addr_multi"]);
-        if (data[0] != 1 && data[0] != 2) {
-            data = await serport_ajax_flashRead(mcu["eeprom_start"] - 32, 8, 8, mcu["addr_multi"]);
-            let is_all_ascii = true;
-            for (let si = 0; si < 4; si++) {
-                if (data[si] < 32 || data[si] > 126) {
-                    is_all_ascii = false;
-                    break;
-                }
-            }
-            if (is_all_ascii) {
-                current_chip["eeprom_layout"] = 5;
-                current_chip["fw_version_major"] = 3;
-                current_chip["fw_version_minor"] = 0;
-            }
-        }
-
-        document.getElementById("btn_serwrite").style.display = "block";
-        document.getElementById("btn_serwrite").disabled = false;
-        document.getElementById("btn_fwupdate").disabled = false;
-        document.getElementById("div_maincontent").style.display = "block";
-        document.getElementById("btn_testesc").disabled = false;
-        document.getElementById("div_testesc").style.display = "block";
-        document.getElementById("btn_testesc").value = "Start Test";
-
-        if (current_chip != null)
-        {
-            if (current_chip["fw_version_major"] >= 3 && current_chip["eeprom_layout"] >= 5) {
-                document.getElementById("div_experimentalextras").style.display = "block";
-            }
-            else {
-                document.getElementById("div_experimentalextras").style.display = "none";
-            }
-        }
+        getEleById("btn_serwrite").style.display = "block";
+        getEleById("btn_serwrite").disabled = false;
+        getEleById("btn_fwupdate").disabled = false;
+        getEleById("div_maincontent").style.display = "block";
+        getEleById("btn_testesc").disabled = false;
+        getEleById("div_testesc").style.display = "block";
+        getEleById("btn_testesc").value = "Start Test";
     }
     else {
         console.log("pretending to read serial pin " + pinnum);
         await new Promise(resolve => setTimeout(resolve, 2000));
-        document.getElementById("btn_serwrite").style.display = "block";
-        document.getElementById("btn_serwrite").disabled = false;
-        document.getElementById("btn_fwupdate").disabled = false;
-        document.getElementById("div_maincontent").style.display = "block";
-        document.getElementById("btn_testesc").disabled = false;
-        document.getElementById("div_testesc").style.display = "block";
-        document.getElementById("btn_testesc").value = "Start Test";
+        getEleById("btn_serwrite").style.display = "block";
+        getEleById("btn_serwrite").disabled = false;
+        getEleById("btn_fwupdate").disabled = false;
+        getEleById("div_maincontent").style.display = "block";
+        getEleById("btn_testesc").disabled = false;
+        getEleById("div_testesc").style.display = "block";
+        getEleById("btn_testesc").value = "Start Test";
     }
 
     //cuteAlert({
@@ -1010,8 +1049,8 @@ async function btn_connect_onclick_a()
         });
     }
 
-    document.getElementById("drop_selpin").disabled = false;
-    document.getElementById("btn_connect").disabled = false;
+    getEleById("drop_selpin").disabled = false;
+    getEleById("btn_connect").disabled = false;
     testesc_stop();
 }
 
@@ -1024,21 +1063,21 @@ async function btn_serwrite_onclick_a()
 {
     try
     {
-    document.getElementById("div_progress").style.display = "none";
+    getEleById("div_progress").style.display = "none";
     if (current_chip == null) {
-        document.getElementById("btn_serwrite").disabled = true;
+        getEleById("btn_serwrite").disabled = true;
         throw new Error(`not enough data about ESC to proceed`);
     }
     if (!current_chip.hasOwnProperty("mcu")) {
-        document.getElementById("btn_serwrite").disabled = true;
+        getEleById("btn_serwrite").disabled = true;
         throw new Error(`not enough data about ESC to proceed`);
     }
-    document.getElementById("drop_selpin").disabled = true;
-    document.getElementById("btn_connect").disabled = true;
-    document.getElementById("btn_serwrite").disabled = true;
-    document.getElementById("btn_fwupdate").disabled = true;
+    getEleById("drop_selpin").disabled = true;
+    getEleById("btn_connect").disabled = true;
+    getEleById("btn_serwrite").disabled = true;
+    getEleById("btn_fwupdate").disabled = true;
     let data;
-    let pinnum = document.getElementById("drop_selpin").value;
+    let pinnum = getEleById("drop_selpin").value;
     if (!isRunningLocally()) {
         let eeprom_bin = generateBin();
         await serport_ajax_flashWrite(eeprom_bin, current_chip["mcu"]["eeprom_start"], eeprom_total_length, flash_write_chunk, current_chip["mcu"]["addr_multi"]);
@@ -1055,11 +1094,11 @@ async function btn_serwrite_onclick_a()
         await new Promise(resolve => setTimeout(resolve, 2000));
     }
 
-    //cuteAlert({
-    //    type: 'success',
-    //    title: 'Finished EEPROM write',
-    //    message: 'Finished EEPROM write'
-    //});
+    cuteAlert({
+        type: 'success',
+        title: 'Finished EEPROM write',
+        message: 'Finished EEPROM write'
+    });
 
     }
     catch (e) {
@@ -1070,33 +1109,33 @@ async function btn_serwrite_onclick_a()
         });
     }
 
-    document.getElementById("div_progress").style.display = "none";
-    document.getElementById("btn_serwrite").style.display = "block";
-    document.getElementById("btn_serwrite").disabled = false;
-    document.getElementById("drop_selpin").disabled = false;
-    document.getElementById("btn_connect").disabled = false;
-    document.getElementById("btn_fwupdate").disabled = false;
+    getEleById("div_progress").style.display = "none";
+    getEleById("btn_serwrite").style.display = "block";
+    getEleById("btn_serwrite").disabled = false;
+    getEleById("drop_selpin").disabled = false;
+    getEleById("btn_connect").disabled = false;
+    getEleById("btn_fwupdate").disabled = false;
 }
 
 async function fwupdate_data(content)
 {
     try
     {
-    document.getElementById("div_progress").style.display = "none";
+    getEleById("div_progress").style.display = "none";
     if (current_chip == null) {
-        document.getElementById("btn_serwrite").disabled = true;
+        getEleById("btn_serwrite").disabled = true;
         throw new Error(`not enough data about ESC to proceed`);
     }
     if (!current_chip.hasOwnProperty("mcu")) {
-        document.getElementById("btn_serwrite").disabled = true;
+        getEleById("btn_serwrite").disabled = true;
         throw new Error(`not enough data about ESC to proceed`);
     }
-    document.getElementById("drop_selpin").disabled = true;
-    document.getElementById("btn_connect").disabled = true;
-    document.getElementById("btn_serwrite").disabled = true;
-    document.getElementById("btn_fwupdate").disabled = true;
+    getEleById("drop_selpin").disabled = true;
+    getEleById("btn_connect").disabled = true;
+    getEleById("btn_serwrite").disabled = true;
+    getEleById("btn_fwupdate").disabled = true;
     let data;
-    let pinnum = document.getElementById("drop_selpin").value;
+    let pinnum = getEleById("drop_selpin").value;
     if (!isRunningLocally()) {
         let flash_length = current_chip["mcu"]["eeprom_start"] - current_chip["mcu"]["flash_start"];
         await serport_ajax_flashWrite(content, current_chip["mcu"]["flash_start"], flash_length, flash_write_chunk, current_chip["mcu"]["addr_multi"]);
@@ -1108,11 +1147,11 @@ async function fwupdate_data(content)
         }
     }
     else {
-        document.getElementById("div_progress").style.display = "block";
-        document.getElementById("div_progress").innerHTML = "pretend update";
+        getEleById("div_progress").style.display = "block";
+        getEleById("div_progress").innerHTML = "pretend update";
         console.log("pretending to firmware update to pin " + pinnum);
         await new Promise(resolve => setTimeout(resolve, 2000));
-        document.getElementById("div_progress").style.display = "none";
+        getEleById("div_progress").style.display = "none";
     }
 
     cuteAlert({
@@ -1130,19 +1169,21 @@ async function fwupdate_data(content)
         });
     }
 
-    document.getElementById("div_progress").style.display = "none";
-    document.getElementById("btn_serwrite").style.display = "block";
-    document.getElementById("btn_serwrite").disabled = false;
-    document.getElementById("drop_selpin").disabled = false;
-    document.getElementById("btn_connect").disabled = false;
-    document.getElementById("btn_fwupdate").disabled = false;
+    getEleById("div_progress").style.display = "none";
+    getEleById("btn_serwrite").style.display = "block";
+    getEleById("btn_serwrite").disabled = false;
+    getEleById("drop_selpin").disabled = false;
+    getEleById("btn_connect").disabled = false;
+    getEleById("btn_fwupdate").disabled = false;
 }
+
+let fwupdate_filename = null;
 
 function fwupdate(e)
 {
     var file = e.target.files[0];
     if (!file) {
-        document.getElementById("btn_fwupdate").value = "";
+        getEleById("btn_fwupdate").value = "";
         cuteAlert({
             type: 'error',
             title: 'Error',
@@ -1150,8 +1191,8 @@ function fwupdate(e)
         });
         return;
     }
-    if (current_chip == null) {
-        document.getElementById("btn_fwupdate").value = "";
+    if (!isRunningLocally() && (current_chip == null || !current_chip.hasOwnProperty("mcu"))) {
+        getEleById("btn_fwupdate").value = "";
         cuteAlert({
             type: 'error',
             title: 'Error',
@@ -1159,46 +1200,121 @@ function fwupdate(e)
         });
         return;
     }
-    if (!current_chip.hasOwnProperty("mcu")) {
-        document.getElementById("btn_fwupdate").value = "";
-        cuteAlert({
-            type: 'error',
-            title: 'Error',
-            message: 'not enough data about ESC to proceed'
-        });
-        return;
-    }
+    fwupdate_filename = file.name;
     var reader = new FileReader();
     reader.onload = function(e) {
         try {
-            document.getElementById("div_progress").style.display = "block";
-            document.getElementById("txt_progress").innerHTML = "Preparing file...";
+            getEleById("div_progress").style.display = "block";
+            getEleById("txt_progress").innerHTML = "Preparing file...";
+            let flash_start;
+            let eeprom_start;
+            if (!isRunningLocally()) {
+                flash_start = current_chip["mcu"]["flash_start"];
+                eeprom_start = current_chip["mcu"]["eeprom_start"];
+            }
+            else {
+                flash_start = 0x1000;
+                eeprom_start = 0x7C00;
+            }
+            let need_read_again = false;
             let memMap = MemoryMap.fromHex(e.target.result);
-            let start_addr = current_chip["mcu"]["flash_start"] + 0x08000000;
-            let total_len = current_chip["mcu"]["eeprom_start"] - current_chip["mcu"]["flash_start"];
+            let map_range = memMap.getRange();
+            let start_addr = flash_start + (map_range[0] & 0xFFFF00000); // I hope this handles all chip variations
+            let total_len = eeprom_start - flash_start;
+            let total_len2 = map_range[1] - map_range[0];
+            if (total_len2 > total_len) {
+                // FW file seems to overlap with EEPROM
+                total_len = total_len2;
+                need_read_again = true;
+            }
+            else {
+                total_len = total_len2; // keep the write short
+            }
             let end_addr = start_addr + total_len;
             let fwArr = memMap.slicePad(start_addr, total_len);
             console.log("writing from 0x" + toHexString(start_addr) + " , len = 0x" + toHexString(total_len) + " (" + total_len + ") , ending at 0x" + toHexString(end_addr));
             fwupdate_data(fwArr);
+
+            if (current_chip != null && need_read_again == false) {
+                // V2 and V3 firmware do not contain the firmware_info_s structure metadata
+                // so I've resorted to simply checking the file name to see if an upgrade is being performed
+                let is_experimental = 0;
+                let regex = /v(\d+)/i;
+                let match = fwupdate_filename.match(regex);
+                if (match) {
+                    let number = parseInt(match[1], 10);
+                    if (number >= 3) {
+                        is_experimental = number;
+                    }
+                }
+                if (current_chip.hasOwnProperty("eeprom_0") && (current_chip["eeprom_0"] == 0 || current_chip["eeprom_0"] == 0xFF)) {
+                    cuteAlert({
+                        type: 'question',
+                        title: 'Write EEPROM?',
+                        message: `EEPROM appears blank, it's recommended that you immediate fill it with some data first`,
+                        confirmText: 'Yes write EEPROM',
+                        cancelText: 'No'
+                    }).then((e)=>{
+                        if (is_experimental > 0) {
+                            getEleById("chk_experimentalupgrade").checked = true;
+                        }
+                        btn_serwrite_onclick();
+                    });
+                }
+                else if (is_experimental > 0 && (current_chip["eeprom_layout"] < 5 || current_chip["fw_version_major"] < 3)) {
+                    let regex = /v(\d+)/i;
+                    let match = fwupdate_filename.match(regex);
+                    if (match) {
+                        let number = parseInt(match[1], 10);
+                        if (number >= 3) {
+                            cuteAlert({
+                                type: 'question',
+                                title: 'Upgrade EEPROM?',
+                                message: `New file appears to be version ${is_experimental}, but ESC is reporting an older version ${current_chip["fw_version_major"]} (layout version ${current_chip["eeprom_layout"]}), you might need to upgrade the EEPROM version or else the ESC will not work.`,
+                                confirmText: 'Yes Upgrade',
+                                cancelText: 'No'
+                            }).then((e)=>{
+                                getEleById("chk_experimentalupgrade").checked = true;
+                                btn_serwrite_onclick();
+                            });
+                        }
+                    }
+                }
+            }
+            else if (need_read_again)
+            {
+                cuteAlert({
+                    type: 'info',
+                    title: 'You should reboot',
+                    message: `The new firmware file appears to also write EEPROM data, in this case, please power-cycle the ESC, and then read it again`
+                });
+            }
         }
         catch (ex) {
             console.log("error: exception while reading/sending firmware: " + ex.toString());
         }
-        document.getElementById("btn_fwupdate").value = "";
+        getEleById("btn_fwupdate").value = "";
     };
     reader.readAsText(file);
 }
 
-let testesc_idle = null;
+let testesc_idleval = null;
+let testesc_isactive = false;
+let testesc_lastinputtime = null;
+let testesc_istouched = false;
 
 function register_test_params()
 {
-    const dropdown = document.getElementById("drop_selpin");
+    // immediately after a read of the ESC or a write to the ESC, remember what kind of idle pulse setting is best
+
+    // fist step is to see if the pin being used is configured for PWM/PPM or DSHOT
+    // scan the text of the dropdown selected element
+    const dropdown = getEleById("drop_selpin");
     if (!dropdown) {
-        testesc_idle = null;
+        testesc_idleval = null;
         return;
     }
-    const value = document.getElementById("drop_selpin").value;
+    const value = dropdown.value;
     let pin_text = null;
 
     const options = dropdown.options;
@@ -1209,36 +1325,41 @@ function register_test_params()
     }
 
     if (pin_text == null) {
-        testesc_idle = null;
+        console.log("cannot determine pin for testing ESC, pin not selected");
+        testesc_idleval = null;
         return;
     }
     if (pin_text.startsWith("SER")) {
-        testesc_idle = null;
+        // cannot test ESC if a serial TX pin is being used
+        testesc_idleval = null;
         return;
     }
 
-    let is_bidir = document.getElementById("chk_bidirectional").checked;
+    let is_bidir = getEleById("chk_bidirectional").checked;
     if (pin_text.startsWith("DSHOT")) {
+        // with DSHOT, AM32 completely ignores the "servo neutral" setting
         if (is_bidir) {
-            testesc_idle = 1500;
+            testesc_idleval = 1500;
         }
         else {
-            testesc_idle = 1000;
+            testesc_idleval = 1000;
         }
     }
     else {
+        // with traditional PPM, AM32 will use the "servo neutral" and "servo low threshold" values as configured or calibrated
         if (is_bidir) {
-            testesc_idle = parseInt(document.getElementById("txt_servoneutral").value);
+            testesc_idleval = parseInt(getEleById("txt_servoneutral").value);
         }
         else {
-            testesc_idle = parseInt(document.getElementById("txt_servolowthresh").value);;
+            testesc_idleval = parseInt(getEleById("txt_servolowthresh").value);;
         }
     }
 }
 
-let input_element_disabled_cache = {}
+let input_element_disabled_cache = {};
 
 function testesc_cache_disabled() {
+    // remember which elements were previously already disabled
     const elements = document.querySelectorAll('input, select');
     elements.forEach(element => {
         if (element.id) {
@@ -1248,18 +1369,24 @@ function testesc_cache_disabled() {
 }
 
 function testesc_restore() {
+    // return the disabled/enabled state of all inputs back to when test mode was not active
     const elements = document.querySelectorAll('input, select');
     elements.forEach(element => {
         if (element.id) {
+            if (element.id == "btn_testesc" || element.id == "sld_testvalue") {
+                return;
+            }
             if (input_element_disabled_cache.hasOwnProperty(element.id)) {
                 element.disabled = input_element_disabled_cache[element.id];
             }
         }
     });
-    document.getElementById("sld_testvalue").disabled = true;
+    getEleById("sld_testvalue").disabled = true;
 }
 
 function testesc_disable_rest() {
+    // disable all input elements on the whole page, but remember which ones were already disabled
+    // the previous state will be restored later
     testesc_cache_disabled();
     const elements = document.querySelectorAll('input, select');
     elements.forEach(element => {
@@ -1272,13 +1399,9 @@ function testesc_disable_rest() {
     });
 }
 
-let testesc_started = false;
-let testesc_lastinputtime = null;
-let testesc_istouched = false;
-
 async function testesc_start()
 {
-    if (testesc_idle == null) {
+    if (testesc_idleval == null) {
         cuteAlert({
             type: 'error',
             title: 'Error',
@@ -1288,35 +1411,36 @@ async function testesc_start()
         return;
     }
     try {
-    document.getElementById('sld_testvalue').value = testesc_idle;
-    await serport_ajax("starting test", 6, parseInt(document.getElementById("drop_selpin")));
-    document.getElementById("btn_testesc").value = "Stop Test";
+    getEleById('sld_testvalue').value = testesc_idleval;
+    await serport_ajax("starting test", 6, parseInt(getEleById("drop_selpin")));
+    getEleById("btn_testesc").value = "Stop Test";
     testesc_disable_rest();
-    document.getElementById("sld_testvalue").disabled = false;
-    testesc_started = true;
+    getEleById("sld_testvalue").disabled = false;
+    testesc_isactive = true;
     sld_testvalue_onchange();
     setTimeout(testesc_tick, 20);
     }
     catch (e) {
+        console.log("failed to start test mode: " + e.toString());
         testesc_stop();
     }
 }
 
 async function testesc_stop()
 {
-    let need_reconnect = testesc_started;
-    document.getElementById("btn_testesc").value = "Start Test";
+    let need_reconnect = testesc_isactive;
+    getEleById("btn_testesc").value = "Start Test";
     testesc_restore();
-    document.getElementById("sld_testvalue").disabled = true;
-    testesc_started = false;
+    getEleById("sld_testvalue").disabled = true;
+    testesc_isactive = false;
     if (need_reconnect) {
         btn_connect_onclick();
     }
 }
 
 function btn_testesc_onclick() {
-    let btn_ele = document.getElementById("btn_testesc");
-    if (testesc_started == false) {
+    let btn_ele = getEleById("btn_testesc");
+    if (testesc_isactive == false) {
         testesc_start();
     }
     else {
@@ -1325,7 +1449,7 @@ function btn_testesc_onclick() {
 }
 
 async function testesc_tick_a() {
-    if (testesc_started == false) {
+    if (testesc_isactive == false) {
         return;
     }
 
@@ -1333,13 +1457,19 @@ async function testesc_tick_a() {
     const nowTime = now.getTime();
     const pastTime = testesc_lastinputtime.getTime();
     const differenceInMilliseconds = nowTime - pastTime;
-    if (testesc_istouched == false && differenceInMilliseconds >= 3000) {
-        document.getElementById('sld_testvalue').value = testesc_idle;
-        document.getElementById('div_testvalue').innerHTML = testesc_idle;
+    if ((testesc_istouched == false && differenceInMilliseconds >= 3000) || differenceInMilliseconds >= 8000) {
+        // failsafe on no activity
+        getEleById('sld_testvalue').value = testesc_idleval;
+        getEleById('div_testvalue').innerHTML = testesc_idleval;
     }
 
-    let v = document.getElementById('sld_testvalue').value;
-    await serport_ajax("send test pulse", 7, serport_lastpin, null, v);
+    let v = getEleById('sld_testvalue').value;
+    try {
+        await serport_ajax("send test pulse", 7, serport_lastpin, null, v);
+    }
+    catch (e) {
+        console.log("error while sending test pulse: " + e.toString());
+    }
 
     setTimeout(testesc_tick, 20);
 }
@@ -1349,15 +1479,17 @@ function testesc_tick() {
 }
 
 function sld_testvalue_oninput() {
+    // oninput is called when the slider is being moved actively, the user is dragging
     testesc_lastinputtime = new Date();
-    let v = document.getElementById('sld_testvalue').value;
-    document.getElementById('div_testvalue').innerHTML = v;
+    let v = getEleById('sld_testvalue').value;
+    getEleById('div_testvalue').innerHTML = v;
     testesc_istouched = true;
 }
 
 function sld_testvalue_onchange() {
+    // onchange is called when the user releases the input
     testesc_lastinputtime = new Date();
-    let v = document.getElementById('sld_testvalue').value;
-    document.getElementById('div_testvalue').innerHTML = v;
+    let v = getEleById('sld_testvalue').value;
+    getEleById('div_testvalue').innerHTML = v;
     testesc_istouched = false;
 }

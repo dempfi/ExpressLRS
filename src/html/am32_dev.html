@@ -38,7 +38,7 @@
             </div>
             <br />
             <div>
-                <div style="display:inline-block; padding-right:30pt; min-width:200px;">
+                <div style="display:inline-block; padding-right:1em; min-width:200px;">
                     <fieldset><legend>RC Input</legend>
                         <select id="drop_rcinput" onchange="drop_rcinput_onchange()">
                             <option value="x_0">Automatic</option>
@@ -60,9 +60,14 @@
                         </fieldset>
                     </fieldset>
                 </div>
-                <div style="display:inline-block;">
+                <div style="display:inline-block; padding-right:1em">
                     <fieldset><legend><label for="txt_devicename">Device Name</label></legend>
                         <input type="text" id="txt_devicename" maxlength="12" />
+                    </fieldset>
+                </div>
+                <div style="display:inline-block;">
+                    <fieldset><legend><label for="txt_devicename">FW Version</label></legend>
+                        <span id="span_firmwareversion">V0.0 EL0 BL0</span><span id="span_experimentalupgrade"><br /><input type="checkbox" id="chk_experimentalupgrade" onchange="chk_experimentalupgrade_onchange()" /><label for="chk_experimentalupgrade">Force upgrade to experimental EEPROM?</label></span>
                     </fieldset>
                 </div>
             </div>
