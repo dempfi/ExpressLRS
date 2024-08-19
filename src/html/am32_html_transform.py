@@ -11,6 +11,7 @@ header = '''
 let inline_loader_list = [
 	{ tag: 'link'  , attribs: { rel: 'stylesheet', href: 'elrs.css'}},
 	{ tag: 'script', attribs: { src: 'mui.js'}},
+    { tag: 'script', attribs: { src: 'libs.js'}},
     { tag: 'script', attribs: { src: 'am32.js'}},
     { tag: 'script', attribs: { src: 'ihex.js'}},
 ];

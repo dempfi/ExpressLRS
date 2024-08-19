@@ -24,6 +24,11 @@ static uint8_t vbatUpdateScale;
 static esp_adc_cal_characteristics_t *vbatAdcUnitCharacterics;
 #endif
 
+#ifdef BUILD_SHREW_ADCLUT
+int32_t shrewvbat_get(uint32_t x);
+static bool use_lut = false;
+#endif
+
 /* Shameful externs */
 extern Telemetry telemetry;
 
@@ -52,7 +57,14 @@ static int start()
         bool useCal = atten > ADC_11db;
         if (useCal)
         {
+            #ifndef BUILD_SHREW_ADCLUT
             atten -= (ADC_11db + 1);
+            #else
+            if (atten > 7) {
+                use_lut = true;
+                atten %= (ADC_11db + 1);
+            }
+            #endif
 
             vbatAdcUnitCharacterics = new esp_adc_cal_characteristics_t();
             int8_t channel = digitalPinToAnalogChannel(GPIO_ANALOG_VBAT);
@@ -75,11 +87,23 @@ static void reportVbat()
 #endif
 
     int32_t vbat;
+
+#ifdef BUILD_SHREW_ADCLUT
+    if (use_lut == false)
+#endif
+    {
     // For negative offsets, anything between abs(OFFSET) and 0 is considered 0
     if (ANALOG_VBAT_OFFSET < 0 && adc <= -ANALOG_VBAT_OFFSET)
         vbat = 0;
     else
         vbat = ((int32_t)adc - ANALOG_VBAT_OFFSET) * 100 / ANALOG_VBAT_SCALE;
+    }
+#ifdef BUILD_SHREW_ADCLUT
+    else
+    {
+        vbat = shrewvbat_get(adc);
+    }
+#endif
 
     CRSF_MK_FRAME_T(crsf_sensor_battery_t) crsfbatt = { 0 };
     // Values are MSB first (BigEndian)
@@ -105,11 +129,22 @@ static int timeout()
         adc = esp_adc_cal_raw_to_voltage(adc, vbatAdcUnitCharacterics);
 
     int32_t vbat;
+#ifdef BUILD_SHREW_ADCLUT
+    if (use_lut == false)
+#endif
+    {
     // For negative offsets, anything between abs(OFFSET) and 0 is considered 0
     if (ANALOG_VBAT_OFFSET < 0 && adc <= -ANALOG_VBAT_OFFSET)
         vbat = 0;
     else
         vbat = ((int32_t)adc - ANALOG_VBAT_OFFSET) * 100 / ANALOG_VBAT_SCALE;
+    }
+#ifdef BUILD_SHREW_ADCLUT
+    else
+    {
+        vbat = shrewvbat_get(adc);
+    }
+#endif
 
     DBGLN("$ADC,  %u  ,  %u", adc, vbat);
 #endif

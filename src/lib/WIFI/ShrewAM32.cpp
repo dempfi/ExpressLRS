@@ -1,5 +1,6 @@
 #include "ShrewAM32.h"
 #include "common.h"
+#include "config.h"
 
 #if defined(BUILD_SHREW_AM32CONFIG)
 #if defined(PLATFORM_ESP32)
@@ -28,14 +29,21 @@ enum
     AM32_ACTION_PIN_INIT, // pulled high and initialized as serial input
     AM32_ACTION_READ,
     AM32_ACTION_WRITE,
+    AM32_ACTION_TEST_START,
+    AM32_ACTION_TEST_SIGNAL,
 };
 
 static int pin_num = -1;
+static bool test_mode_started = false;
+static uint32_t last_test_time = 0;
 
 void am32_setPinMode(int pin, bool isTx);
 void am32_freeStruct(am32_request_t* x);
 void am32_hexDecode(const char* str, uint8_t* outbuf, int len);
-void WebUpdateSendContent(AsyncWebServerRequest *request);
+extern void WebUpdateSendContent(AsyncWebServerRequest *request);
+extern void servos_singleWrite(int selected_pin, int us);
+extern void servos_singleInit(int selected_pin);
+extern void servos_deinitAll();
 
 void am32_handleIo(AsyncWebServerRequest *request)
 {
@@ -84,30 +92,47 @@ void am32_handleIo(AsyncWebServerRequest *request)
         }
     }
 
+    bool default_response = false;
+
     switch (req_data.action)
     {
         case AM32_ACTION_PIN_LOW:
+            servos_deinitAll();
+            test_mode_started = false;
+            last_test_time = 0;
             pinMatrixOutDetach(req_data.pin, false, false);
             pinMatrixInDetach(req_data.pin, false, false);
             pinMode(req_data.pin, OUTPUT);
             digitalWrite(req_data.pin, LOW);
+            default_response = true;
             break;
         case AM32_ACTION_PIN_HIGH:
+            servos_deinitAll();
+            test_mode_started = false;
+            last_test_time = 0;
             pinMatrixOutDetach(req_data.pin, false, false);
             pinMatrixInDetach(req_data.pin, true, false);
             pinMode(req_data.pin, OUTPUT);
             digitalWrite(req_data.pin, HIGH);
+            default_response = true;
             break;
         case AM32_ACTION_PIN_INIT:
+            servos_deinitAll();
+            test_mode_started = false;
+            last_test_time = 0;
             Serial.end();
             Serial.begin(19200, SERIAL_8N1, req_data.pin, req_data.pin);
             pinMatrixOutDetach(req_data.pin, false, false);
             pinMatrixInDetach(req_data.pin, true, false);
             pinMode(req_data.pin, INPUT_PULLUP);
             am32_setPinMode(req_data.pin, false);
+            default_response = true;
             break;
         case AM32_ACTION_PIN_LIST:
             {
+                servos_deinitAll();
+                test_mode_started = false;
+                last_test_time = 0;
                 char pin_str[64];
                 AsyncResponseStream *response = request->beginResponseStream("text/plain");
 
@@ -125,8 +150,16 @@ void am32_handleIo(AsyncWebServerRequest *request)
                 for (int ch = 0 ; ch < GPIO_PIN_PWM_OUTPUTS_COUNT ; ++ch)
                 {
                     int8_t pwm_pin = GPIO_PIN_PWM_OUTPUTS[ch];
-                    snprintf(pin_str, 62, "PWM %d %d,", ch, pwm_pin);
-                    response->print(pin_str);
+                    const rx_config_pwm_t *chConfig = config.GetPwmChannel(ch);
+                    auto mode = (eServoOutputMode)chConfig->val.mode;
+                    if (mode == somPwm) {
+                        snprintf(pin_str, 62, "PWM %d %d,", ch, pwm_pin);
+                        response->print(pin_str);
+                    }
+                    else if (mode == somDShot) {
+                        snprintf(pin_str, 62, "DSHOT %d %d,", ch, pwm_pin);
+                        response->print(pin_str);
+                    }
                 }
                 request->send(response);
                 am32_freeStruct(&req_data);
@@ -151,27 +184,50 @@ void am32_handleIo(AsyncWebServerRequest *request)
                 return;
             }
         case AM32_ACTION_WRITE:
-            am32_setPinMode(req_data.pin, true);
-            for (int j = 0; j < req_data.buffer1_len; j++) {
-                Serial.write((uint8_t)req_data.buffer1[j]);
+            {
+                am32_setPinMode(req_data.pin, true);
+                for (int j = 0; j < req_data.buffer1_len; j++) {
+                    Serial.write((uint8_t)req_data.buffer1[j]);
+                }
+                uart_wait_tx_done(0, pdMS_TO_TICKS(100));
+                if (req_data.delay > 0 && req_data.buffer2_len > 0) {
+                    delayMicroseconds(req_data.delay);
+                }
+                for (int j = 0; j < req_data.buffer2_len; j++) {
+                    Serial.write((uint8_t)req_data.buffer2[j]);
+                }
+                uart_wait_tx_done(0, pdMS_TO_TICKS(100));
+                am32_setPinMode(req_data.pin, false);
+                default_response = true;
             }
-            uart_wait_tx_done(0, pdMS_TO_TICKS(100));
-            if (req_data.delay > 0 && req_data.buffer2_len > 0) {
-                delayMicroseconds(req_data.delay);
+            break;
+        case AM32_ACTION_TEST_START:
+            {
+                test_mode_started = true;
+                pinMatrixOutDetach(req_data.pin, false, false);
+                pinMatrixInDetach(req_data.pin, false, false);
+                pinMode(req_data.pin, OUTPUT);
+                digitalWrite(req_data.pin, LOW);
+                servos_deinitAll();
+                servos_singleInit(req_data.pin);
+                default_response = true;
             }
-            for (int j = 0; j < req_data.buffer2_len; j++) {
-                Serial.write((uint8_t)req_data.buffer2[j]);
+            break;
+        case AM32_ACTION_TEST_SIGNAL:
+            {
+                last_test_time = millis();
+                servos_singleWrite(req_data.pin, req_data.delay);
+                default_response = true;
             }
-            uart_wait_tx_done(0, pdMS_TO_TICKS(100));
-            am32_setPinMode(req_data.pin, false);
-            am32_freeStruct(&req_data);
-            AsyncResponseStream *response = request->beginResponseStream("text/plain");
-            response->write("ok", 2);
-            request->send(response);
-            return;
+            break;
     }
 
     am32_freeStruct(&req_data);
+    if (default_response) {
+        AsyncResponseStream *response = request->beginResponseStream("text/plain");
+        response->write("ok", 2);
+        request->send(response);
+    }
 }
 
 void am32_setupServer(AsyncWebServer* srv)
@@ -232,6 +288,18 @@ String am32_encodeHex(uint8_t* data, size_t length) {
 }
 */
 
+void am32_tick()
+{
+    if (test_mode_started && pin_num >= 0)
+    {
+        uint32_t now = millis();
+        if ((now - last_test_time) >= 1000 && last_test_time != 0) {
+            last_test_time = now;
+            servos_singleWrite(pin_num, 0);
+        }
+    }
+}
+
 #else // PLATFORM_ESP32
 
 #if defined(PLATFORM_ESP8266)
@@ -243,6 +311,11 @@ String am32_encodeHex(uint8_t* data, size_t length) {
 #include <ESPAsyncWebServer.h>
 
 void am32_setupServer(AsyncWebServer* srv)
+{
+    // do nothing
+}
+
+void am32_tick()
 {
     // do nothing
 }

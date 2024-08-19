@@ -8,6 +8,7 @@
     <script type="application/javascript" src="mui.js"></script>
     <link rel="stylesheet" href="elrs.css" />
     <script type="application/javascript" src="am32.js"></script>
+    <script type="application/javascript" src="libs.js"></script>
 </head>
 <body onload="am32_init()">
     <header class="mui-appbar mui--z1 mui--text-center elrs-header" style="padding: 1.2em 0 1.2em 0;">
@@ -99,7 +100,25 @@
             </div>
         </div>
         <fieldset id="fld_fwupdate"><legend>FW Update (*.HEX file)</legend>
-            <input type="file" id="btn_fwupdate" />
+            <div><input type="file" id="btn_fwupdate" /></div>
+            <div id="div_progress"></div>
+        </fieldset>
+    </div>
+    <div id="div_testesc">
+        <fieldset id="fld_testesc"><legend>Test ESC</legend>
+            <div style="display: table; width: 100%;">
+                <div style="display: table-row-group;">
+                    <div style="display: table-row;">
+                        <div style="display: table-cell; width: 50%;">
+                            <input type="button" id="btn_testesc" value="Start Test" onclick="btn_testesc_onclick()" />
+                        </div>
+                        <div style="display: table-cell;">
+                            <div id="div_testvalue"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div style="padding-top:1em;padding-bottom:1em;"><input type="range" id="sld_testvalue" min="1000" max="2000" style="width: 100%;" oninput="sld_testvalue_oninput()" onchange="sld_testvalue_oninput()" /></div>
         </fieldset>
     </div>
 </body>

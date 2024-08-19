@@ -5,6 +5,7 @@ function am32_init()
     document.getElementById("tbl_sliders").innerHTML         = make_all_sliders(plain_sliders);
     document.getElementById("tbl_extracheckboxes").innerHTML = make_all_checkboxes(extra_checkboxes);
     document.getElementById("tbl_extrasliders").innerHTML    = make_all_sliders(extra_sliders);
+    document.getElementById("btn_fwupdate").addEventListener("change", fwupdate, false);
 
     document.getElementById("chk_drivebyrpm").addEventListener('change', function() {
         enabledisable_elements_with("_speedctrl", this.checked);
@@ -76,11 +77,11 @@ async function am32_init2()
         try {
             let opt = document.createElement('option');
             let pin_parts = pin_str.split(' ');
-            if (pin_parts[0] == "PWM") {
+            if (pin_parts[0] == "PWM" || pin_parts[0] == "DSHOT") {
                 let pin_num = parseInt(pin_parts[2]);
                 let ch_num = parseInt(pin_parts[1]);
                 opt.value = pin_num;
-                opt.innerHTML = `PWM CH-${ch_num} PIN-${pin_num}`;
+                opt.innerHTML = `${pin_parts[0]} CH-${ch_num} PIN-${pin_num}`;
             }
             else if (pin_parts[0].startsWith("SERTX")) {
                 let pin_num = parseInt(pin_parts[1]);
@@ -99,12 +100,14 @@ async function am32_init2()
     }
     document.getElementById("div_loading").style.display = "none";
     document.getElementById("div_maincontent").style.display = "block";
+    document.getElementById("div_testesc").style.display = "block";
     document.getElementById("div_escconnect").style.display = "block";
     if (!isRunningLocally())
     {
         //document.getElementById("btn_serwrite").style.display = "none";
         document.getElementById("btn_serwrite").disabled = true;
         document.getElementById("div_maincontent").style.display = "none";
+        document.getElementById("div_testesc").style.display = "none";
         document.getElementById("fld_crsfchannels").style.display = "none";
         document.getElementById("fld_crsf2channels").style.display = "none";
         document.getElementById("div_experimentalextras").style.display = "none";
@@ -122,18 +125,21 @@ let mcu_data = [
         "name": "Generic 32K",
         "signature": [0x1F, 0x06],
         "eeprom_start": 0x7C00,
+        "flash_start": 0x1000,
         "addr_multi": 1
     },
     {
         "name": "Generic 64K",
         "signature": [0x35, 0x06],
         "eeprom_start": 0xF800,
+        "flash_start": 0x1000,
         "addr_multi": 1
     },
     {
         "name": "Generic 128K",
         "signatures": [0x2B,0x06],
         "eeprom_start": 0xF800,
+        "flash_start": 0x1000,
         "addr_multi": 4
     }
 ];
@@ -691,8 +697,14 @@ function serport_genPayload(bin, start, len)
     let x = [];
     for (let i = 0; i < len; i++)
     {
-        //x[i] = bin[start + i];
-        x.push(bin[start + i]);
+        if (i < bin.length) {
+            //x[i] = bin[start + i];
+            x.push(bin[start + i]);
+        }
+        else {
+            //x[i] = 0;
+            x.push(0);
+        }
     }
     let crc = serport_genCrc(x);
     x[len    ] = ((crc & 0x00FF) >> 0);
@@ -750,24 +762,36 @@ function serport_verifyCrc(barr)
     return calculated_crc == received_crc;
 }
 
+let serport_lastpin;
+
 async function serport_ajax(msg, action, pinnum, tx_data, delay, tx_data2) {
     let objdata = {"action": action};
 
     if (pinnum !== undefined) {
         objdata["pin"] = pinnum;
+        serport_lastpin = pinnum;
+    }
+    else {
+        objdata["pin"] = serport_lastpin;
     }
     if (tx_data !== undefined) {
-        let s = toHexString(tx_data);
-        objdata["len1"] = s.length / 2;
-        objdata["data1"] = s;
+        if (tx_data != null) {
+            let s = toHexString(tx_data);
+            objdata["len1"] = s.length / 2;
+            objdata["data1"] = s;
+        }
     }
     if (delay !== undefined) {
-        objdata["delay"] = delay;
+        if (delay != null) {
+            objdata["delay"] = delay;
+        }
     }
     if (tx_data2 !== undefined) {
-        let s = toHexString(tx_data2);
-        objdata["len2"] = s.length / 2;
-        objdata["data2"] = s;
+        if (tx_data2 != null) {
+            let s = toHexString(tx_data2);
+            objdata["len2"] = s.length / 2;
+            objdata["data2"] = s;
+        }
     }
 
     let frmdata = objectToFormData(objdata);
@@ -817,13 +841,12 @@ async function serport_ajax_readAck(msg) {
 async function serport_ajax_flashRead(start_addr, read_len, chunk_size, addr_multi)
 {
     let buffer = [];
-    let i = 0;
     let adr = start_addr;
     while (buffer.length < read_len)
     {
-        let data = await serport_ajax("send set address", 5, serport_genSetAddressCmd(adr / addr_multi));
+        let data = await serport_ajax("send set address", 5, serport_lastpin, serport_genSetAddressCmd(adr / addr_multi));
         await serport_ajax_readAck("set address");
-        data = await serport_ajax("send read cmd", 5, serport_genReadCmd(chunk_size));
+        data = await serport_ajax("send read cmd", 5, serport_lastpin, serport_genReadCmd(chunk_size));
         let reply_size = chunk_size + 3;
         data = await serport_ajax_read(reply_size, 1000);
         let timedout = false;
@@ -846,8 +869,34 @@ async function serport_ajax_flashRead(start_addr, read_len, chunk_size, addr_mul
             return buffer;
         }
         adr += chunk_size;
+        let percentage = Math.max(0, Math.min(100, Math.round(buffer.length * 100 / read_len)));
+        document.getElementById("div_progress").innerHTML = `Verifying... ${percentage}% complete`;
     }
     return buffer;
+}
+
+async function serport_ajax_flashWrite(contents, start_addr, write_len, chunk_size, addr_multi)
+{
+    let buffer = [];
+    let i = 0;
+    let adr = start_addr;
+    if (write_len > (chunk_size * 4)) {
+        document.getElementById("div_progress").style.display = "block";
+        document.getElementById("div_progress").innerHTML = `Flash Writing...`;
+    }
+    while (i < write_len)
+    {
+        let data = await serport_ajax("send set address", 5, serport_lastpin, serport_genSetAddressCmd(adr / addr_multi));
+        await serport_ajax_readAck("set address");
+        data = await serport_ajax("send buffer", 5, serport_lastpin, serport_genSetBufferCmd(0, chunk_size), 800, serport_genPayload(contents, i, chunk_size));
+        await serport_ajax_readAck("send buffer");
+        data = await serport_ajax("flash cmd", 5, serport_lastpin, serport_genFlashCmd());
+        await serport_ajax_readAck("flash cmd");
+        i += chunk_size;
+        adr += chunk_size;
+        let percentage = Math.max(0, Math.min(100, Math.round(i * 100 / write_len)));
+        document.getElementById("div_progress").innerHTML = `Flash Writing... ${percentage}% complete`;
+    }
 }
 
 function btn_connect_onclick()
@@ -859,9 +908,11 @@ async function btn_connect_onclick_a()
 {
     try
     {
+    document.getElementById("div_progress").style.display = "none";
     document.getElementById("drop_selpin").disabled = true;
     document.getElementById("btn_connect").disabled = true;
     document.getElementById("btn_serwrite").disabled = true;
+    document.getElementById("btn_fwupdate").disabled = true;
     let data;
     let pinnum = document.getElementById("drop_selpin").value;
     if (!isRunningLocally()) {
@@ -871,7 +922,7 @@ async function btn_connect_onclick_a()
         await new Promise(resolve => setTimeout(resolve, 2000));
         data = await serport_ajax("init serial port", 3);
         await new Promise(resolve => setTimeout(resolve, 200));
-        data = await serport_ajax("send query", 5, serport_genInitQuery());
+        data = await serport_ajax("send query", 5, pinnum, serport_genInitQuery());
         let signature_bytes = await serport_ajax_read(9, 1000);
         if (signature_bytes.length < 9) {
             throw new Error(`signature bytes are too short (or timed-out reading signature)`);
@@ -890,6 +941,9 @@ async function btn_connect_onclick_a()
         }
         data = await serport_ajax_flashRead(mcu["eeprom_start"], eeprom_total_length, flash_write_chunk, mcu["addr_multi"]);
         readBin(data, false);
+
+        register_test_params();
+
         if (current_chip != null) {
             current_chip["mcu"] = mcu;
         }
@@ -913,7 +967,11 @@ async function btn_connect_onclick_a()
 
         document.getElementById("btn_serwrite").style.display = "block";
         document.getElementById("btn_serwrite").disabled = false;
+        document.getElementById("btn_fwupdate").disabled = false;
         document.getElementById("div_maincontent").style.display = "block";
+        document.getElementById("btn_testesc").disabled = false;
+        document.getElementById("div_testesc").style.display = "block";
+        document.getElementById("btn_testesc").value = "Start Test";
 
         if (current_chip != null)
         {
@@ -926,17 +984,377 @@ async function btn_connect_onclick_a()
         }
     }
     else {
-        console.log("pretending to send to pin " + pinnum);
+        console.log("pretending to read serial pin " + pinnum);
         await new Promise(resolve => setTimeout(resolve, 2000));
         document.getElementById("btn_serwrite").style.display = "block";
         document.getElementById("btn_serwrite").disabled = false;
+        document.getElementById("btn_fwupdate").disabled = false;
         document.getElementById("div_maincontent").style.display = "block";
+        document.getElementById("btn_testesc").disabled = false;
+        document.getElementById("div_testesc").style.display = "block";
+        document.getElementById("btn_testesc").value = "Start Test";
     }
+
+    //cuteAlert({
+    //    type: 'success',
+    //    title: 'Finished EEPROM read',
+    //    message: 'Finished EEPROM read'
+    //});
+
     }
     catch (e) {
-        alert("ERROR: " + e.toString());
+        cuteAlert({
+            type: 'error',
+            title: 'Error during EEPROM read',
+            message: e.toString()
+        });
     }
 
     document.getElementById("drop_selpin").disabled = false;
     document.getElementById("btn_connect").disabled = false;
+    testesc_stop();
+}
+
+function btn_serwrite_onclick()
+{
+    btn_serwrite_onclick_a();
+}
+
+async function btn_serwrite_onclick_a()
+{
+    try
+    {
+    document.getElementById("div_progress").style.display = "none";
+    if (current_chip == null) {
+        document.getElementById("btn_serwrite").disabled = true;
+        throw new Error(`not enough data about ESC to proceed`);
+    }
+    if (!current_chip.hasOwnProperty("mcu")) {
+        document.getElementById("btn_serwrite").disabled = true;
+        throw new Error(`not enough data about ESC to proceed`);
+    }
+    document.getElementById("drop_selpin").disabled = true;
+    document.getElementById("btn_connect").disabled = true;
+    document.getElementById("btn_serwrite").disabled = true;
+    document.getElementById("btn_fwupdate").disabled = true;
+    let data;
+    let pinnum = document.getElementById("drop_selpin").value;
+    if (!isRunningLocally()) {
+        let eeprom_bin = generateBin();
+        await serport_ajax_flashWrite(eeprom_bin, current_chip["mcu"]["eeprom_start"], eeprom_total_length, flash_write_chunk, current_chip["mcu"]["addr_multi"]);
+        data = await serport_ajax_flashRead(current_chip["mcu"]["eeprom_start"], eeprom_total_length, flash_write_chunk, current_chip["mcu"]["addr_multi"]);
+        for (let i = 0; i < eeprom_total_length && i < eeprom_bin.length; i++) {
+            if (eeprom_bin[i] != data[i]) {
+                throw new Error(`write verification failed at index ${i}`);
+            }
+        }
+        register_test_params();
+    }
+    else {
+        console.log("pretending to send to pin " + pinnum);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+
+    //cuteAlert({
+    //    type: 'success',
+    //    title: 'Finished EEPROM write',
+    //    message: 'Finished EEPROM write'
+    //});
+
+    }
+    catch (e) {
+        cuteAlert({
+            type: 'error',
+            title: 'Error during EEPROM write',
+            message: e.toString()
+        });
+    }
+
+    document.getElementById("div_progress").style.display = "none";
+    document.getElementById("btn_serwrite").style.display = "block";
+    document.getElementById("btn_serwrite").disabled = false;
+    document.getElementById("drop_selpin").disabled = false;
+    document.getElementById("btn_connect").disabled = false;
+    document.getElementById("btn_fwupdate").disabled = false;
+}
+
+async function fwupdate_data(content)
+{
+    try
+    {
+    document.getElementById("div_progress").style.display = "none";
+    if (current_chip == null) {
+        document.getElementById("btn_serwrite").disabled = true;
+        throw new Error(`not enough data about ESC to proceed`);
+    }
+    if (!current_chip.hasOwnProperty("mcu")) {
+        document.getElementById("btn_serwrite").disabled = true;
+        throw new Error(`not enough data about ESC to proceed`);
+    }
+    document.getElementById("drop_selpin").disabled = true;
+    document.getElementById("btn_connect").disabled = true;
+    document.getElementById("btn_serwrite").disabled = true;
+    document.getElementById("btn_fwupdate").disabled = true;
+    let data;
+    let pinnum = document.getElementById("drop_selpin").value;
+    if (!isRunningLocally()) {
+        let flash_length = current_chip["mcu"]["eeprom_start"] - current_chip["mcu"]["flash_start"];
+        await serport_ajax_flashWrite(content, current_chip["mcu"]["flash_start"], flash_length, flash_write_chunk, current_chip["mcu"]["addr_multi"]);
+        data = await serport_ajax_flashRead(current_chip["mcu"]["flash_start"], flash_length, flash_write_chunk, current_chip["mcu"]["addr_multi"]);
+        for (let i = 0; i < content.length; i++) {
+            if (content[i] != data[i]) {
+                throw new Error(`write verification failed at index ${i}`);
+            }
+        }
+    }
+    else {
+        document.getElementById("div_progress").style.display = "block";
+        document.getElementById("div_progress").innerHTML = "pretend update";
+        console.log("pretending to firmware update to pin " + pinnum);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        document.getElementById("div_progress").style.display = "none";
+    }
+
+    cuteAlert({
+        type: 'success',
+        title: 'Finished',
+        message: 'Successfully finished firmware update'
+    });
+
+    }
+    catch (e) {
+        cuteAlert({
+            type: 'error',
+            title: 'Error during EEPROM write',
+            message: e.toString()
+        });
+    }
+
+    document.getElementById("div_progress").style.display = "none";
+    document.getElementById("btn_serwrite").style.display = "block";
+    document.getElementById("btn_serwrite").disabled = false;
+    document.getElementById("drop_selpin").disabled = false;
+    document.getElementById("btn_connect").disabled = false;
+    document.getElementById("btn_fwupdate").disabled = false;
+}
+
+function fwupdate(e)
+{
+    var file = e.target.files[0];
+    if (!file) {
+        document.getElementById("btn_fwupdate").value = "";
+        cuteAlert({
+            type: 'error',
+            title: 'Error',
+            message: 'file cannot be read'
+        });
+        return;
+    }
+    if (current_chip == null) {
+        document.getElementById("btn_fwupdate").value = "";
+        cuteAlert({
+            type: 'error',
+            title: 'Error',
+            message: 'not enough data about ESC to proceed'
+        });
+        return;
+    }
+    if (!current_chip.hasOwnProperty("mcu")) {
+        document.getElementById("btn_fwupdate").value = "";
+        cuteAlert({
+            type: 'error',
+            title: 'Error',
+            message: 'not enough data about ESC to proceed'
+        });
+        return;
+    }
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            document.getElementById("div_progress").style.display = "block";
+            document.getElementById("txt_progress").innerHTML = "Preparing file...";
+            let memMap = MemoryMap.fromHex(e.target.result);
+            let start_addr = current_chip["mcu"]["flash_start"] + 0x08000000;
+            let total_len = current_chip["mcu"]["eeprom_start"] - current_chip["mcu"]["flash_start"];
+            let end_addr = start_addr + total_len;
+            let fwArr = memMap.slicePad(start_addr, total_len);
+            console.log("writing from 0x" + toHexString(start_addr) + " , len = 0x" + toHexString(total_len) + " (" + total_len + ") , ending at 0x" + toHexString(end_addr));
+            fwupdate_data(fwArr);
+        }
+        catch (ex) {
+            console.log("error: exception while reading/sending firmware: " + ex.toString());
+        }
+        document.getElementById("btn_fwupdate").value = "";
+    };
+    reader.readAsText(file);
+}
+
+let testesc_idle = null;
+
+function register_test_params()
+{
+    const dropdown = document.getElementById("drop_selpin");
+    if (!dropdown) {
+        testesc_idle = null;
+        return;
+    }
+    const value = document.getElementById("drop_selpin").value;
+    let pin_text = null;
+
+    const options = dropdown.options;
+    for (let i = 0; i < options.length; i++) {
+        if (options[i].value === value) {
+            pin_text = options[i].text;
+        }
+    }
+
+    if (pin_text == null) {
+        testesc_idle = null;
+        return;
+    }
+    if (pin_text.startsWith("SER")) {
+        testesc_idle = null;
+        return;
+    }
+
+    let is_bidir = document.getElementById("chk_bidirectional").checked;
+    if (pin_text.startsWith("DSHOT")) {
+        if (is_bidir) {
+            testesc_idle = 1500;
+        }
+        else {
+            testesc_idle = 1000;
+        }
+    }
+    else {
+        if (is_bidir) {
+            testesc_idle = parseInt(document.getElementById("txt_servoneutral").value);
+        }
+        else {
+            testesc_idle = parseInt(document.getElementById("txt_servolowthresh").value);;
+        }
+    }
+}
+
+let input_element_disabled_cache = {}
+
+function testesc_cache_disabled() {
+    const elements = document.querySelectorAll('input, select');
+    elements.forEach(element => {
+        if (element.id) {
+            input_element_disabled_cache[element.id] = element.disabled;
+        }
+    });
+}
+
+function testesc_restore() {
+    const elements = document.querySelectorAll('input, select');
+    elements.forEach(element => {
+        if (element.id) {
+            if (input_element_disabled_cache.hasOwnProperty(element.id)) {
+                element.disabled = input_element_disabled_cache[element.id];
+            }
+        }
+    });
+    document.getElementById("sld_testvalue").disabled = true;
+}
+
+function testesc_disable_rest() {
+    testesc_cache_disabled();
+    const elements = document.querySelectorAll('input, select');
+    elements.forEach(element => {
+        if (element.id == "btn_testesc" || element.id == "sld_testvalue") {
+            return;
+        }
+        if (element.id) {
+            element.disabled = true;
+        }
+    });
+}
+
+let testesc_started = false;
+let testesc_lastinputtime = null;
+let testesc_istouched = false;
+
+async function testesc_start()
+{
+    if (testesc_idle == null) {
+        cuteAlert({
+            type: 'error',
+            title: 'Error',
+            message: 'unable to start test with current configuration'
+        });
+        return;
+    }
+    try {
+    document.getElementById('sld_testvalue').value = testesc_idle;
+    await serport_ajax("starting test", 6, parseInt(document.getElementById("drop_selpin")));
+    document.getElementById("btn_testesc").value = "Stop Test";
+    testesc_disable_rest();
+    document.getElementById("sld_testvalue").disabled = false;
+    testesc_started = true;
+    sld_testvalue_onchange();
+    setTimeout(testesc_tick, 20);
+    }
+    catch (e) {
+        testesc_stop();
+    }
+}
+
+async function testesc_stop()
+{
+    let need_reconnect = testesc_started;
+    document.getElementById("btn_testesc").value = "Start Test";
+    testesc_restore();
+    document.getElementById("sld_testvalue").disabled = true;
+    testesc_started = false;
+    if (need_reconnect) {
+        btn_connect_onclick();
+    }
+}
+
+function btn_testesc_onclick() {
+    let btn_ele = document.getElementById("btn_testesc");
+    if (testesc_started == false) {
+        testesc_start();
+    }
+    testesc_disable_rest();
+}
+
+async function testesc_tick_a() {
+    if (testesc_started == false) {
+        return;
+    }
+
+    let now = new Date();
+    const nowTime = now.getTime();
+    const pastTime = testesc_lastinputtime.getTime();
+    const differenceInMilliseconds = nowTime - pastTime;
+    if (testesc_istouched == false && differenceInMilliseconds >= 3000) {
+        document.getElementById('sld_testvalue').value = testesc_idle;
+        document.getElementById('div_testvalue').innerHTML = testesc_idle;
+    }
+
+    let v = document.getElementById('sld_testvalue').value;
+    await serport_ajax("send test pulse", 7, serport_lastpin, null, v);
+
+    setTimeout(testesc_tick, 20);
+}
+
+function testesc_tick() {
+    testesc_tick_a();
+}
+
+function sld_testvalue_oninput() {
+    testesc_lastinputtime = new Date();
+    let v = document.getElementById('sld_testvalue').value;
+    document.getElementById('div_testvalue').innerHTML = v;
+    testesc_istouched = true;
+}
+
+function sld_testvalue_onchange() {
+    testesc_lastinputtime = new Date();
+    let v = document.getElementById('sld_testvalue').value;
+    document.getElementById('div_testvalue').innerHTML = v;
+    testesc_istouched = false;
 }

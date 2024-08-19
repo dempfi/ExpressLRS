@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stdlib.h>
+#include <math.h>
 
 #ifdef BUILD_SHREW_ADCLUT
 
@@ -23,7 +24,7 @@ static const tbl_entry_t lut[] = {
     {1836, 17000},
 };
 
-static vbat_float_t shrewvbat_interpolate(tbl_entry_t* table, int size, vbat_float_t x) {
+static vbat_float_t shrewvbat_interpolate(const tbl_entry_t* table, int size, vbat_float_t x) {
     int i = 0;
     for (i = 0; i < size - 1; i++) {
         if (table[i].x <= x && table[i + 1].x >= x) {
@@ -46,8 +47,8 @@ static vbat_float_t shrewvbat_interpolate(tbl_entry_t* table, int size, vbat_flo
     }
 }
 
-uint32_t shrewvbat_get(uint32_t x) {
-    int lut_size = sizeof(table) / sizeof(Entry);
+int32_t shrewvbat_get(uint32_t x) {
+    int lut_size = sizeof(lut) / sizeof(tbl_entry_t);
     vbat_float_t y = shrewvbat_interpolate(lut, lut_size, x);
     return (uint32_t)vbat_float_round(y);
 }
