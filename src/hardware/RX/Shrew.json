@@ -1,6 +1,7 @@
 {
     "serial_rx": 3,
     "serial_tx": 1,
+    "pwm_outputs": [19, 22],
 
     "radio_busy": 23,
     "radio_dio1": 18,

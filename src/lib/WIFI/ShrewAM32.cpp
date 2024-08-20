@@ -122,6 +122,7 @@ void am32_handleIo(AsyncWebServerRequest *request)
             last_test_time = 0;
             Serial.end();
             Serial.begin(19200, SERIAL_8N1, req_data.pin, req_data.pin);
+            Serial.flush();
             pinMatrixOutDetach(req_data.pin, false, false);
             pinMatrixInDetach(req_data.pin, true, false);
             pinMode(req_data.pin, INPUT_PULLUP);
@@ -135,7 +136,23 @@ void am32_handleIo(AsyncWebServerRequest *request)
                 last_test_time = 0;
                 char pin_str[64];
                 AsyncResponseStream *response = request->beginResponseStream("text/plain");
-
+                for (int ch = 0 ; ch < GPIO_PIN_PWM_OUTPUTS_COUNT ; ++ch)
+                {
+                    int8_t pwm_pin = GPIO_PIN_PWM_OUTPUTS[ch];
+                    if (pwm_pin >= 0)
+                    {
+                        const rx_config_pwm_t *chConfig = config.GetPwmChannel(ch);
+                        auto mode = (eServoOutputMode)(chConfig->val.mode);
+                        if (mode <= som400Hz) {
+                            snprintf(pin_str, 62, "PWM %d %d,", ch, pwm_pin);
+                            response->print(pin_str);
+                        }
+                        else if (mode == somDShot) {
+                            snprintf(pin_str, 62, "DSHOT %d %d,", ch, pwm_pin);
+                            response->print(pin_str);
+                        }
+                    }
+                }
                 if (GPIO_PIN_RCSIGNAL_TX >= 0)
                 {
                     snprintf(pin_str, 62, "SERTX %d,", GPIO_PIN_RCSIGNAL_TX);
@@ -145,21 +162,6 @@ void am32_handleIo(AsyncWebServerRequest *request)
                 {
                     snprintf(pin_str, 62, "SERRX %d,", GPIO_PIN_RCSIGNAL_RX);
                     response->print(pin_str);
-                }
-
-                for (int ch = 0 ; ch < GPIO_PIN_PWM_OUTPUTS_COUNT ; ++ch)
-                {
-                    int8_t pwm_pin = GPIO_PIN_PWM_OUTPUTS[ch];
-                    const rx_config_pwm_t *chConfig = config.GetPwmChannel(ch);
-                    auto mode = (eServoOutputMode)chConfig->val.mode;
-                    if (mode == somPwm) {
-                        snprintf(pin_str, 62, "PWM %d %d,", ch, pwm_pin);
-                        response->print(pin_str);
-                    }
-                    else if (mode == somDShot) {
-                        snprintf(pin_str, 62, "DSHOT %d %d,", ch, pwm_pin);
-                        response->print(pin_str);
-                    }
                 }
                 request->send(response);
                 am32_freeStruct(&req_data);
@@ -171,7 +173,7 @@ void am32_handleIo(AsyncWebServerRequest *request)
                 bool has = false;
                 char hex[3];
                 while (Serial.available() > 0) {
-                    sprintf(hex, "%02X", Serial.read());
+                    sprintf(hex, "%02X", (uint8_t)Serial.read());
                     response->write(hex, 2);
                     has = true;
                 }
@@ -198,6 +200,15 @@ void am32_handleIo(AsyncWebServerRequest *request)
                 }
                 uart_wait_tx_done(0, pdMS_TO_TICKS(100));
                 am32_setPinMode(req_data.pin, false);
+
+                // I have no idea why there's an echo of the TX in the RX buffer, but clear it out
+                uint32_t total_bytes = req_data.buffer1_len + req_data.buffer2_len;
+                for (int j = 0; j < total_bytes; j++) {
+                    if (Serial.available() > 0) {
+                        Serial.read();
+                    }
+                }
+
                 default_response = true;
             }
             break;
@@ -234,6 +245,7 @@ void am32_setupServer(AsyncWebServer* srv)
 {
     srv->on("/am32.html", WebUpdateSendContent);
     srv->on("/am32.js", WebUpdateSendContent);
+    srv->on("/ihex.js", WebUpdateSendContent);
     srv->on("/am32io", HTTP_POST, am32_handleIo);
 }
 
@@ -241,10 +253,12 @@ void am32_setPinMode(int pin, bool isTx)
 {
     if (isTx)
     {
+        pinMatrixInDetach(pin, true, false);
         pinMatrixOutAttach(pin, U0TXD_OUT_IDX, false, false);
     }
     else
     {
+        pinMatrixOutDetach(pin, false, false);
         pinMatrixInAttach(pin, U0RXD_IN_IDX, false);
     }
 }

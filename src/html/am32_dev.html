@@ -5,10 +5,11 @@
 	<title>AM32 Configurator</title>
 	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
-    <script type="application/javascript" src="mui.js"></script>
-    <link rel="stylesheet" href="elrs.css" />
-    <script type="application/javascript" src="am32.js"></script>
-    <script type="application/javascript" src="libs.js"></script>
+	<script type="application/javascript" src="mui.js"></script>
+	<link rel="stylesheet" href="elrs.css" />
+	<script type="application/javascript" src="am32.js"></script>
+	<script type="application/javascript" src="ihex.js"></script>
+	<script type="application/javascript" src="libs.js"></script>
 </head>
 <body onload="am32_init()">
     <header class="mui-appbar mui--z1 mui--text-center elrs-header" style="padding: 1.2em 0 1.2em 0;">
@@ -27,7 +28,29 @@
             <div>
                 <div style="display:inline-block; vertical-align:top;">
                     <div style="display: table; padding-right:30pt;">
-                        <div style="display: table-row-group;" id="tbl_checkboxes"> </div>
+                        <div style="display: table-row-group;" id="tbl_checkboxes"></div>
+                        <div>
+                            <fieldset><legend>RC Input</legend>
+                                <select id="drop_rcinput" onchange="drop_rcinput_onchange()">
+                                    <option value="x_0">Automatic</option>
+                                    <option value="x_1">DShot</option>
+                                    <option value="x_2">Servo</option>
+                                    <option value="x_3">Serial</option>
+                                    <option value="x_4">EDTARM</option>
+                                    <option value="x_5">??? 5</option>
+                                    <option value="x_6">??? 6</option>
+                                    <option value="x_7">??? 7</option>
+                                    <option value="x_8">??? 8</option>
+                                    <option value="x_9">??? 9</option>
+                                </select>
+                                <fieldset id="fld_crsfchannels"><legend>CRSF Channel</legend>
+                                    <input type="number" id="txt_crsfchannel" name="txt_crsfchannel" value="1" step="1" min="1" max="8" />
+                                </fieldset>
+                                <fieldset id="fld_crsf2channels"><legend>CRSF Secondary Channel</legend>
+                                    <input type="number" id="txt_crsf2channel" name="txt_crsf2channel" value="1" step="1" min="1" max="8" />
+                                </fieldset>
+                            </fieldset>
+                        </div>
                     </div>
                 </div>
                 <div style="display:inline-block; vertical-align:top;">
@@ -38,28 +61,6 @@
             </div>
             <br />
             <div>
-                <div style="display:inline-block; padding-right:1em; min-width:200px;">
-                    <fieldset><legend>RC Input</legend>
-                        <select id="drop_rcinput" onchange="drop_rcinput_onchange()">
-                            <option value="x_0">Automatic</option>
-                            <option value="x_1">DShot</option>
-                            <option value="x_2">Servo</option>
-                            <option value="x_3">Serial</option>
-                            <option value="x_4">EDTARM</option>
-                            <option value="x_5">??? 5</option>
-                            <option value="x_6">??? 6</option>
-                            <option value="x_7">??? 7</option>
-                            <option value="x_8">??? 8</option>
-                            <option value="x_9">??? 9</option>
-                        </select>
-                        <fieldset id="fld_crsfchannels"><legend>CRSF Channel</legend>
-                            <input type="number" id="txt_crsfchannel" name="txt_crsfchannel" value="1" step="1" min="1" max="8" />
-                        </fieldset>
-                        <fieldset id="fld_crsf2channels"><legend>CRSF Secondary Channel</legend>
-                            <input type="number" id="txt_crsf2channel" name="txt_crsf2channel" value="1" step="1" min="1" max="8" />
-                        </fieldset>
-                    </fieldset>
-                </div>
                 <div style="display:inline-block; padding-right:1em">
                     <fieldset><legend><label for="txt_devicename">Device Name</label></legend>
                         <input type="text" id="txt_devicename" maxlength="12" />
@@ -109,7 +110,7 @@
             <div id="div_progress"></div>
         </fieldset>
     </div>
-    <div id="div_testesc">
+    <div id="div_testesc" style="display: none;">
         <fieldset id="fld_testesc"><legend>Test ESC</legend>
             <div style="display: table; width: 100%;">
                 <div style="display: table-row-group;">
@@ -123,7 +124,7 @@
                     </div>
                 </div>
             </div>
-            <div style="padding-top:1em;padding-bottom:1em;"><input type="range" id="sld_testvalue" min="1000" max="2000" style="width: 100%;" oninput="sld_testvalue_oninput()" onchange="sld_testvalue_oninput()" /></div>
+            <div style="padding-top:1em;padding-bottom:1em;"><input type="range" id="sld_testvalue" min="1000" max="2000" style="width: 100%;" oninput="sld_testvalue_oninput()" onchange="sld_testvalue_oninput()" onfocus="sld_testvalue_oninput()" onmousedown="sld_testvalue_oninput()" /></div>
         </fieldset>
     </div>
 </body>

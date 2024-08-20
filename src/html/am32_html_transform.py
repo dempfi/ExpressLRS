@@ -9,11 +9,10 @@ header = '''
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
 	<script>
 let inline_loader_list = [
-	{ tag: 'link'  , attribs: { rel: 'stylesheet', href: 'elrs.css'}},
-	{ tag: 'script', attribs: { src: 'mui.js'}},
-    { tag: 'script', attribs: { src: 'libs.js'}},
+    { tag: 'link'  , attribs: { rel: 'stylesheet', href: 'elrs.css'}},
+    { tag: 'script', attribs: { src: 'mui.js'}},
     { tag: 'script', attribs: { src: 'am32.js'}},
-    { tag: 'script', attribs: { src: 'ihex.js'}},
+    { tag: 'script', attribs: { src: 'ihex.js'}}
 ];
 function inline_loader_ondone() {
 	am32_init();

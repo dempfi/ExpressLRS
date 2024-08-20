@@ -61,8 +61,8 @@ async function am32_init2()
     let data;
     if (!isRunningLocally()) {
         let formData = new FormData();
-        formData.append("action", 0);
-        let response = await fetch("/am32io", { method: 'POST', body: {formData}});
+        formData.append("action", srvaction_pin_list);
+        let response = await fetch("/am32io", { method: 'POST', body: formData});
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -93,7 +93,9 @@ async function am32_init2()
                 opt.value = pin_num;
                 opt.innerHTML = `SERIAL-RX PIN-${pin_num}`;
             }
-            select.appendChild(opt);
+            if (opt.innerHTML.trim().length > 0) {
+                select.appendChild(opt);
+            }
         }
         catch (e) {
         }
@@ -147,6 +149,15 @@ let mcu_data = [
         "addr_multi": 4
     }
 ];
+
+const srvaction_pin_list = 0;
+const srvaction_pin_low = 1;
+const srvaction_pin_high = 2;
+const srvaction_ser_init = 3;
+const srvaction_ser_read = 4;
+const srvaction_ser_write = 5;
+const srvaction_test_start = 6;
+const srvaction_test_pulse = 7;
 
 let current_chip = null;
 
@@ -224,6 +235,20 @@ let ui_locked = false;
 
 function isRunningLocally() {
     return window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" || window.location.protocol === "file:";
+}
+
+function fakeit(el, v) {
+    // call this to make it seem like something is connected
+    current_chip = {};
+    current_chip["eeprom_0"] = 1;
+    current_chip["eeprom_layout"] = el;
+    current_chip["bootloader_version"] = 8;
+    current_chip["fw_version_major"] = v;
+    current_chip["fw_version_minor"] = 1;
+    current_chip["mcu"] = mcu_data[0];
+    testesc_idleval = 1500;
+    fill_version_box();
+    offer_experimental();
 }
 
 function text_to_id(t)
@@ -626,14 +651,14 @@ function offer_experimental()
         }
         else {
             getEleById("div_experimentalextras").style.display = "none";
-            getEleById("span_experimentalupgrade").style.display = "block";
+            getEleById("span_experimentalupgrade").style.display = "inline";
             getEleById("chk_experimentalupgrade").checked = false;
         }
     }
     else
     {
         getEleById("div_experimentalextras").style.display = "none";
-        getEleById("span_experimentalupgrade").style.display = "block";
+        getEleById("span_experimentalupgrade").style.display = "inline";
         getEleById("chk_experimentalupgrade").checked = false;
     }
 }
@@ -660,9 +685,16 @@ let filename_isValid=(function(){
 
 function toHexString(x)
 {
-    let hex = x.toString(16);
-    while ((hex.length % 2) != 0) {
-        hex = "0" + hex;
+    let hex = "";
+    if (typeof x === "number") {
+        x = [x];
+    }
+    for (let y of x)
+    {
+        hex += y.toString(16);
+        while ((hex.length % 2) != 0) {
+            hex = "0" + hex;
+        }
     }
     return hex.toUpperCase();
 }
@@ -670,8 +702,8 @@ function toHexString(x)
 function fromHexString(x)
 {
     let byteList = [];
-    for (let i = 0; i < hexString.length; i += 2) {
-        let byte = parseInt(hexString.substr(i, 2), 16);
+    for (let i = 0; i < x.length; i += 2) {
+        let byte = parseInt(x.substr(i, 2), 16);
         byteList.push(byte);
     }
     return byteList;
@@ -859,7 +891,7 @@ async function serport_ajax(msg, action, pinnum, tx_data, delay, tx_data2) {
     }
 
     let frmdata = objectToFormData(objdata);
-    let response = await fetch("/am32io", { method: 'POST', body: {frmdata}});
+    let response = await fetch("/am32io", { method: 'POST', body: frmdata});
     if (!response.ok) {
         throw new Error(`HTTP error while performing "${msg}"! status: ${response.status}`);
     }
@@ -879,8 +911,8 @@ async function serport_ajax(msg, action, pinnum, tx_data, delay, tx_data2) {
 async function serport_ajax_read(num_bytes, total_time) {
     let buffer = [];
     for (let i = 0; i < total_time; i += 100) {
-        let chunk = serport_ajax("read", 4);
-        buffer.concat(chunk);
+        let chunk = serport_ajax("read", srvaction_ser_read);
+        buffer = buffer.concat(chunk);
         if (buffer.length >= num_bytes) {
             break;
         }
@@ -908,9 +940,9 @@ async function serport_ajax_flashRead(start_addr, read_len, chunk_size, addr_mul
     let adr = start_addr;
     while (buffer.length < read_len)
     {
-        let data = await serport_ajax("send set address", 5, serport_lastpin, serport_genSetAddressCmd(adr / addr_multi));
+        let data = await serport_ajax("send set address", srvaction_ser_write, serport_lastpin, serport_genSetAddressCmd(adr / addr_multi));
         await serport_ajax_readAck("set address");
-        data = await serport_ajax("send read cmd", 5, serport_lastpin, serport_genReadCmd(chunk_size));
+        data = await serport_ajax("send read cmd", srvaction_ser_write, serport_lastpin, serport_genReadCmd(chunk_size));
         let reply_size = chunk_size + 3;
         data = await serport_ajax_read(reply_size, 1000);
         let timedout = false;
@@ -950,11 +982,11 @@ async function serport_ajax_flashWrite(contents, start_addr, write_len, chunk_si
     }
     while (i < write_len)
     {
-        let data = await serport_ajax("send set address", 5, serport_lastpin, serport_genSetAddressCmd(adr / addr_multi));
+        let data = await serport_ajax("send set address", srvaction_ser_write, serport_lastpin, serport_genSetAddressCmd(adr / addr_multi));
         await serport_ajax_readAck("set address");
-        data = await serport_ajax("send buffer", 5, serport_lastpin, serport_genSetBufferCmd(0, chunk_size), 800, serport_genPayload(contents, i, chunk_size));
+        data = await serport_ajax("send buffer", srvaction_ser_write, serport_lastpin, serport_genSetBufferCmd(0, chunk_size), 800, serport_genPayload(contents, i, chunk_size));
         await serport_ajax_readAck("send buffer");
-        data = await serport_ajax("flash cmd", 5, serport_lastpin, serport_genFlashCmd());
+        data = await serport_ajax("flash cmd", srvaction_ser_write, serport_lastpin, serport_genFlashCmd());
         await serport_ajax_readAck("flash cmd");
         i += chunk_size;
         adr += chunk_size;
@@ -972,6 +1004,10 @@ async function btn_connect_onclick_a()
 {
     try
     {
+    let need_alert = false;
+    if (getEleById("div_maincontent").style.display != "none") {
+        need_alert = true;
+    }
     getEleById("div_progress").style.display = "none";
     getEleById("drop_selpin").disabled = true;
     getEleById("btn_connect").disabled = true;
@@ -980,41 +1016,57 @@ async function btn_connect_onclick_a()
     let data;
     let pinnum = getEleById("drop_selpin").value;
     if (!isRunningLocally()) {
-        data = await serport_ajax("setting pin low", 1, pinnum);
+        data = await serport_ajax("setting pin low", srvaction_pin_low, pinnum);
         await new Promise(resolve => setTimeout(resolve, 2000));
-        data = await serport_ajax("setting pin high", 2);
+        data = await serport_ajax("setting pin high", srvaction_pin_high);
         await new Promise(resolve => setTimeout(resolve, 2000));
-        data = await serport_ajax("init serial port", 3);
+        data = await serport_ajax("init serial port", srvaction_ser_init);
         await new Promise(resolve => setTimeout(resolve, 200));
-        data = await serport_ajax("send query", 5, pinnum, serport_genInitQuery());
-        let signature_bytes = await serport_ajax_read(9, 1000);
-        if (signature_bytes.length < 9) {
-            throw new Error(`signature bytes are too short (or timed-out reading signature)`);
-        }
-        let mcu = null;
-        for (let m of mcu_data)
+
+        for (let attempt = 3; attempt > 0; attempt--)
         {
-            let sig = m["signature"];
-            if (sig[0] == signature_bytes[4] && sig[1] == signature_bytes[5]) {
-                mcu = m;
+            try
+            {
+                data = await serport_ajax("send query", srvaction_ser_write, pinnum, serport_genInitQuery());
+                let signature_bytes = await serport_ajax_read(9, 1000);
+                if (signature_bytes.length < 9) {
+                    throw new Error(`signature bytes are too short (or timed-out reading signature), ESC is likely not connected or not responding.`);
+                }
+                console.log("signature bytes: " + signature_bytes);
+                let mcu = null;
+                for (let m of mcu_data)
+                {
+                    let sig = m["signature"];
+                    if (sig[0] == signature_bytes[4] && sig[1] == signature_bytes[5]) {
+                        mcu = m;
+                        break;
+                    }
+                }
+                if (mcu == null) {
+                    throw new Error(`signature bytes do not have a match, the ESC is not responding correctly.`);
+                }
+
+                data = await serport_ajax_flashRead(mcu["eeprom_start"], eeprom_total_length, flash_write_chunk, mcu["addr_multi"]);
+                readBin(data, false);
                 break;
             }
+            catch (e_inner) {
+                console.error(e_inner);
+                if (attempt <= 1) {
+                    throw e_inner;
+                }
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
         }
-        if (mcu == null) {
-            throw new Error(`signature bytes do not have a match`);
-        }
-        data = await serport_ajax_flashRead(mcu["eeprom_start"], eeprom_total_length, flash_write_chunk, mcu["addr_multi"]);
-        readBin(data, false);
 
         register_test_params();
-
         if (current_chip != null) {
             current_chip["mcu"] = mcu;
         }
         fill_version_box();
         offer_experimental();
 
-        getEleById("btn_serwrite").style.display = "block";
+        getEleById("btn_serwrite").style.display = "inline-block";
         getEleById("btn_serwrite").disabled = false;
         getEleById("btn_fwupdate").disabled = false;
         getEleById("div_maincontent").style.display = "block";
@@ -1025,7 +1077,7 @@ async function btn_connect_onclick_a()
     else {
         console.log("pretending to read serial pin " + pinnum);
         await new Promise(resolve => setTimeout(resolve, 2000));
-        getEleById("btn_serwrite").style.display = "block";
+        getEleById("btn_serwrite").style.display = "inline-block";
         getEleById("btn_serwrite").disabled = false;
         getEleById("btn_fwupdate").disabled = false;
         getEleById("div_maincontent").style.display = "block";
@@ -1034,11 +1086,13 @@ async function btn_connect_onclick_a()
         getEleById("btn_testesc").value = "Start Test";
     }
 
-    //cuteAlert({
-    //    type: 'success',
-    //    title: 'Finished EEPROM read',
-    //    message: 'Finished EEPROM read'
-    //});
+    if (need_alert) {
+        cuteAlert({
+            type: 'success',
+            title: 'Finished EEPROM read',
+            message: 'Finished EEPROM read, this page has been updated'
+        });
+    }
 
     }
     catch (e) {
@@ -1097,7 +1151,7 @@ async function btn_serwrite_onclick_a()
     cuteAlert({
         type: 'success',
         title: 'Finished EEPROM write',
-        message: 'Finished EEPROM write'
+        message: 'Finished EEPROM write, ESC now has new settings'
     });
 
     }
@@ -1110,7 +1164,7 @@ async function btn_serwrite_onclick_a()
     }
 
     getEleById("div_progress").style.display = "none";
-    getEleById("btn_serwrite").style.display = "block";
+    getEleById("btn_serwrite").style.display = "inline-block";
     getEleById("btn_serwrite").disabled = false;
     getEleById("drop_selpin").disabled = false;
     getEleById("btn_connect").disabled = false;
@@ -1170,7 +1224,7 @@ async function fwupdate_data(content)
     }
 
     getEleById("div_progress").style.display = "none";
-    getEleById("btn_serwrite").style.display = "block";
+    getEleById("btn_serwrite").style.display = "inline-block";
     getEleById("btn_serwrite").disabled = false;
     getEleById("drop_selpin").disabled = false;
     getEleById("btn_connect").disabled = false;
@@ -1205,7 +1259,7 @@ function fwupdate(e)
     reader.onload = function(e) {
         try {
             getEleById("div_progress").style.display = "block";
-            getEleById("txt_progress").innerHTML = "Preparing file...";
+            getEleById("div_progress").innerHTML = "Preparing file...";
             let flash_start;
             let eeprom_start;
             if (!isRunningLocally()) {
@@ -1291,6 +1345,12 @@ function fwupdate(e)
             }
         }
         catch (ex) {
+            getEleById("div_progress").style.display = "none";
+            cuteAlert({
+                type: 'error',
+                title: 'Error During FW Update',
+                message: ex.toString()
+            });
             console.log("error: exception while reading/sending firmware: " + ex.toString());
         }
         getEleById("btn_fwupdate").value = "";
@@ -1302,6 +1362,7 @@ let testesc_idleval = null;
 let testesc_isactive = false;
 let testesc_lastinputtime = null;
 let testesc_istouched = false;
+let testesc_tickrate = 20;
 
 function register_test_params()
 {
@@ -1412,13 +1473,19 @@ async function testesc_start()
     }
     try {
     getEleById('sld_testvalue').value = testesc_idleval;
-    await serport_ajax("starting test", 6, parseInt(getEleById("drop_selpin")));
+    if (!isRunningLocally()) {
+        await serport_ajax("starting test", 6, parseInt(getEleById("drop_selpin")));
+    }
+    else {
+        testesc_tickrate = 200;
+    }
     getEleById("btn_testesc").value = "Stop Test";
     testesc_disable_rest();
     getEleById("sld_testvalue").disabled = false;
     testesc_isactive = true;
     sld_testvalue_onchange();
-    setTimeout(testesc_tick, 20);
+    setTimeout(testesc_tick, testesc_tickrate);
+    console.log("ESC test started");
     }
     catch (e) {
         console.log("failed to start test mode: " + e.toString());
@@ -1429,12 +1496,18 @@ async function testesc_start()
 async function testesc_stop()
 {
     let need_reconnect = testesc_isactive;
+    if (testesc_idleval != null) {
+        getEleById('sld_testvalue').value = testesc_idleval;
+        sld_testvalue_onchange();
+        await testesc_tick_a();
+    }
     getEleById("btn_testesc").value = "Start Test";
     testesc_restore();
     getEleById("sld_testvalue").disabled = true;
     testesc_isactive = false;
+    console.log("ESC test stopped");
     if (need_reconnect) {
-        btn_connect_onclick();
+        await btn_connect_onclick_a();
     }
 }
 
@@ -1461,17 +1534,23 @@ async function testesc_tick_a() {
         // failsafe on no activity
         getEleById('sld_testvalue').value = testesc_idleval;
         getEleById('div_testvalue').innerHTML = testesc_idleval;
+        console.log("ESC test is idle");
     }
 
     let v = getEleById('sld_testvalue').value;
     try {
-        await serport_ajax("send test pulse", 7, serport_lastpin, null, v);
+        if (!isRunningLocally()) {
+            await serport_ajax("send test pulse", 7, serport_lastpin, null, v);
+        }
+        else {
+            console.log("ESC test pulse " + v);
+        }
     }
     catch (e) {
         console.log("error while sending test pulse: " + e.toString());
     }
 
-    setTimeout(testesc_tick, 20);
+    setTimeout(testesc_tick, testesc_tickrate);
 }
 
 function testesc_tick() {
@@ -1493,3 +1572,5 @@ function sld_testvalue_onchange() {
     getEleById('div_testvalue').innerHTML = v;
     testesc_istouched = false;
 }
+
+@@include("libs.js")
