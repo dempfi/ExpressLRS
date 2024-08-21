@@ -8,41 +8,46 @@
 #define vbat_float_round(x) lround(x)
 
 typedef struct {
-    vbat_float_t x;
-    vbat_float_t y;
+    uint16_t x;
+    uint16_t y;
 } tbl_entry_t;
 
 static const tbl_entry_t lut[] = {
-    {600, 5000},
-    {710, 6000},
-    {825, 7000},
-    {942, 8000},
-    {1060, 9000},
-    {1175, 10000},
-    {1404, 12000},
-    {1686, 15000},
-    {1836, 17000},
+    {614, 5067},
+    {725, 6052},
+    {841, 7064},
+    {960, 8076},
+    {1075, 9070},
+    {1190, 10098},
+    {1414, 12107},
+    {1703, 15147},
+    {1856, 17178},
+    {2028, 20176},
+    {2156, 23228},
+    {2219, 25250},
+    {2302, 28266},
+    {2349, 30300},
 };
 
-static vbat_float_t shrewvbat_interpolate(const tbl_entry_t* table, int size, vbat_float_t x) {
+static vbat_float_t shrewvbat_interpolate(const tbl_entry_t* table, int size, uint16_t x) {
     int i = 0;
     for (i = 0; i < size - 1; i++) {
         if (table[i].x <= x && table[i + 1].x >= x) {
-            vbat_float_t slope = (table[i + 1].y - table[i].y) / (table[i + 1].x - table[i].x);
-            vbat_float_t y = table[i].y + slope * (x - table[i].x);
+            vbat_float_t slope = ((vbat_float_t)(table[i + 1].y - table[i].y)) / ((vbat_float_t)(table[i + 1].x - table[i].x));
+            vbat_float_t y = table[i].y + slope * ((vbat_float_t)(x - table[i].x));
             return y;
         }
     }
     // If x is out of range in the table, perform extrapolation.
     if (x < table[0].x) {
         // Extrapolate using the first two entries
-        vbat_float_t slope = (table[1].y - table[0].y) / (table[1].x - table[0].x);
-        vbat_float_t y = table[0].y + slope * (x - table[0].x);
+        vbat_float_t slope = ((vbat_float_t)(table[1].y - table[0].y)) / ((vbat_float_t)(table[1].x - table[0].x));
+        vbat_float_t y = table[0].y + slope * ((vbat_float_t)(x - table[0].x));
         return y;
     } else {
         // Extrapolate using the last two entries
-        vbat_float_t slope = (table[size - 1].y - table[size - 2].y) / (table[size - 1].x - table[size - 2].x);
-        vbat_float_t y = table[size - 2].y + slope * (x - table[size - 2].x);
+        vbat_float_t slope = ((vbat_float_t)(table[size - 1].y - table[size - 2].y)) / ((vbat_float_t)(table[size - 1].x - table[size - 2].x));
+        vbat_float_t y = table[size - 2].y + slope * ((vbat_float_t)(x - table[size - 2].x));
         return y;
     }
 }
