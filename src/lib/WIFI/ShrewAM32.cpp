@@ -121,11 +121,11 @@ void am32_handleIo(AsyncWebServerRequest *request)
             test_mode_started = false;
             last_test_time = 0;
             Serial.end();
-            Serial.begin(19200, SERIAL_8N1, req_data.pin, req_data.pin);
-            Serial.flush();
+            pinMode(req_data.pin, INPUT_PULLUP);
             pinMatrixOutDetach(req_data.pin, false, false);
             pinMatrixInDetach(req_data.pin, true, false);
-            pinMode(req_data.pin, INPUT_PULLUP);
+            Serial.begin(19200, SERIAL_8N1, req_data.pin, req_data.pin);
+            Serial.flush();
             am32_setPinMode(req_data.pin, false);
             default_response = true;
             break;
@@ -188,17 +188,33 @@ void am32_handleIo(AsyncWebServerRequest *request)
         case AM32_ACTION_WRITE:
             {
                 am32_setPinMode(req_data.pin, true);
+                // note: 515 microseconds for one byte at 19200 baud, from start bit to end of stop bit
+                // note: 468 microseconds for one byte at 19200 baud, from start bit to start of stop bit
+                // uart_wait_tx_done doesn't return fast enough, the AM32 bootloader attempts to reply but the first byte is being cut off
+                // so my solution is to just calculate how much time it should take for the packet to be sent
+                uint64_t ts = esp_timer_get_time();
+                uint64_t deadline = ts + (515 * req_data.buffer1_len) + 150;
                 for (int j = 0; j < req_data.buffer1_len; j++) {
                     Serial.write((uint8_t)req_data.buffer1[j]);
                 }
-                uart_wait_tx_done(0, pdMS_TO_TICKS(100));
-                if (req_data.delay > 0 && req_data.buffer2_len > 0) {
-                    delayMicroseconds(req_data.delay);
+                //uart_wait_tx_done(0, pdMS_TO_TICKS(100));
+                while (esp_timer_get_time() < deadline) {
+                    // do nothing
                 }
-                for (int j = 0; j < req_data.buffer2_len; j++) {
-                    Serial.write((uint8_t)req_data.buffer2[j]);
+                if (req_data.buffer2_len > 0) {
+                    if (req_data.delay > 0) {
+                        delayMicroseconds(req_data.delay);
+                    }
+                    ts = esp_timer_get_time();
+                    deadline = ts + (515 * req_data.buffer2_len) + 150;
+                    for (int j = 0; j < req_data.buffer2_len; j++) {
+                        Serial.write((uint8_t)req_data.buffer2[j]);
+                    }
+                    //uart_wait_tx_done(0, pdMS_TO_TICKS(100));
+                    while (esp_timer_get_time() < deadline) {
+                        // do nothing
+                    }
                 }
-                uart_wait_tx_done(0, pdMS_TO_TICKS(100));
                 am32_setPinMode(req_data.pin, false);
 
                 // I have no idea why there's an echo of the TX in the RX buffer, but clear it out
@@ -253,13 +269,14 @@ void am32_setPinMode(int pin, bool isTx)
 {
     if (isTx)
     {
-        pinMatrixInDetach(pin, true, false);
+        //pinMatrixInDetach(pin, true, false);
         pinMatrixOutAttach(pin, U0TXD_OUT_IDX, false, false);
     }
     else
     {
-        pinMatrixOutDetach(pin, false, false);
+        pinMode(pin, INPUT_PULLUP);
         pinMatrixInAttach(pin, U0RXD_IN_IDX, false);
+        //pinMatrixOutDetach(pin, false, false);
     }
 }
 

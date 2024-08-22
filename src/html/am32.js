@@ -77,23 +77,25 @@ async function am32_init2()
         try {
             let opt = document.createElement('option');
             let pin_parts = pin_str.split(' ');
+            let pin_num;
             if (pin_parts[0] == "PWM" || pin_parts[0] == "DSHOT") {
-                let pin_num = parseInt(pin_parts[2]);
+                pin_num = parseInt(pin_parts[2]);
                 let ch_num = parseInt(pin_parts[1]);
                 opt.value = pin_num;
                 opt.innerHTML = `${pin_parts[0]} CH-${ch_num} PIN-${pin_num}`;
             }
             else if (pin_parts[0].startsWith("SERTX")) {
-                let pin_num = parseInt(pin_parts[1]);
+                pin_num = parseInt(pin_parts[1]);
                 opt.value = pin_num;
                 opt.innerHTML = `SERIAL-TX PIN-${pin_num}`;
             }
             else if (pin_parts[0].startsWith("SERRX")) {
-                let pin_num = parseInt(pin_parts[1]);
+                pin_num = parseInt(pin_parts[1]);
                 opt.value = pin_num;
                 opt.innerHTML = `SERIAL-RX PIN-${pin_num}`;
             }
             if (opt.innerHTML.trim().length > 0) {
+                pin_been_tried[pin_num] = false;
                 select.appendChild(opt);
             }
         }
@@ -143,12 +145,14 @@ let mcu_data = [
     },
     {
         "name": "Generic 128K",
-        "signatures": [0x2B,0x06],
+        "signature": [0x2B,0x06],
         "eeprom_start": 0xF800,
         "flash_start": 0x1000,
         "addr_multi": 4
     }
 ];
+
+let pin_been_tried = {};
 
 const srvaction_pin_list = 0;
 const srvaction_pin_low = 1;
@@ -769,22 +773,7 @@ function serport_genReadCmd(rdLen)
 
 function serport_genInitQuery()
 {
-    let x = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        '\r'.charCodeAt(0),
-        'B' .charCodeAt(0),
-        'L' .charCodeAt(0),
-        'H' .charCodeAt(0),
-        'e' .charCodeAt(0),
-        'l' .charCodeAt(0),
-        'i' .charCodeAt(0)];
-    // I don't think this packet uses the same CRC calculation
-    //let crc = serport_genCrc(x);
-    //x.push((crc & 0x00FF) >> 0);
-    //x.push((crc & 0xFF00) >> 8);
-    // CRC should be 0xF4, 0x7D
-    x.push(0xF4);
-    x.push(0x7D);
-    return x;
+    return [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x0D, 0x42, 0x4C, 0x48, 0x65, 0x6C, 0x69, 0xF4, 0x7D];
 }
 
 function serport_genPayload(bin, start, len)
@@ -875,6 +864,7 @@ async function serport_ajax(msg, action, pinnum, tx_data, delay, tx_data2) {
             let s = toHexString(tx_data);
             objdata["len1"] = s.length / 2;
             objdata["data1"] = s;
+            console.log("tx1: " + s);
         }
     }
     if (delay !== undefined) {
@@ -887,6 +877,7 @@ async function serport_ajax(msg, action, pinnum, tx_data, delay, tx_data2) {
             let s = toHexString(tx_data2);
             objdata["len2"] = s.length / 2;
             objdata["data2"] = s;
+            console.log("tx2: " + s);
         }
     }
 
@@ -911,7 +902,7 @@ async function serport_ajax(msg, action, pinnum, tx_data, delay, tx_data2) {
 async function serport_ajax_read(num_bytes, total_time) {
     let buffer = [];
     for (let i = 0; i < total_time; i += 100) {
-        let chunk = serport_ajax("read", srvaction_ser_read);
+        let chunk = await serport_ajax("read", srvaction_ser_read);
         buffer = buffer.concat(chunk);
         if (buffer.length >= num_bytes) {
             break;
@@ -1016,12 +1007,15 @@ async function btn_connect_onclick_a()
     let data;
     let pinnum = getEleById("drop_selpin").value;
     if (!isRunningLocally()) {
-        data = await serport_ajax("setting pin low", srvaction_pin_low, pinnum);
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        data = await serport_ajax("setting pin high", srvaction_pin_high);
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        if (pin_been_tried[pinnum] == false) {
+            data = await serport_ajax("setting pin low", srvaction_pin_low, pinnum);
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            data = await serport_ajax("setting pin high", srvaction_pin_high);
+            await new Promise(resolve => setTimeout(resolve, 2000));
+        }
         data = await serport_ajax("init serial port", srvaction_ser_init);
         await new Promise(resolve => setTimeout(resolve, 200));
+        pin_been_tried[pinnum] = true;
 
         for (let attempt = 3; attempt > 0; attempt--)
         {
@@ -1474,7 +1468,9 @@ async function testesc_start()
     try {
     getEleById('sld_testvalue').value = testesc_idleval;
     if (!isRunningLocally()) {
-        await serport_ajax("starting test", 6, parseInt(getEleById("drop_selpin")));
+        let pinnum = parseInt(getEleById("drop_selpin"));
+        pin_been_tried[pinnum] = false;
+        await serport_ajax("starting test", srvaction_test_start, pinnum);
     }
     else {
         testesc_tickrate = 200;
@@ -1540,7 +1536,7 @@ async function testesc_tick_a() {
     let v = getEleById('sld_testvalue').value;
     try {
         if (!isRunningLocally()) {
-            await serport_ajax("send test pulse", 7, serport_lastpin, null, v);
+            await serport_ajax("send test pulse", srvaction_test_pulse, serport_lastpin, null, v);
         }
         else {
             console.log("ESC test pulse " + v);
