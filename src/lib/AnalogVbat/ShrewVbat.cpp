@@ -13,6 +13,7 @@ typedef struct {
 } tbl_entry_t;
 
 static const tbl_entry_t lut[] = {
+    #ifdef SHREW_ADC_USE_ZENER_3V6
     {614, 5067},
     {725, 6052},
     {841, 7064},
@@ -27,6 +28,16 @@ static const tbl_entry_t lut[] = {
     {2219, 25250},
     {2302, 28266},
     {2349, 30300},
+    #else // no zener diode
+    {589, 4974},
+    {710, 6041},
+    {827, 7060},
+    {942, 8070},
+    {1063, 9088},
+    {1175, 10071},
+    {1762, 15178},
+    {2336, 20244},
+    #endif
 };
 
 static vbat_float_t shrewvbat_interpolate(const tbl_entry_t* table, int size, uint16_t x) {
