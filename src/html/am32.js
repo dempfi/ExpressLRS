@@ -928,7 +928,7 @@ async function serport_ajax_readAck(msg) {
         }
     }
     if (msg !== undefined) {
-        throw new Error(`did not get ACK for "${msg}"`);
+        throw new Error(`did not get ACK for "${msg}", reply was 0x${b[0].toString(16)}`);
     }
     return false;
 }
@@ -951,7 +951,7 @@ async function serport_ajax_flashRead(start_addr, read_len, chunk_size, addr_mul
         }
         if (data.length >= 4) {
             if (data[data.length - 1] != 0x30) {
-                throw new Error(`did not get ACK during read of address ${adr}`);
+                throw new Error(`did not get ACK during read of address ${adr}, reply was 0x${data[data.length - 1].toString(16)}`);
             }
             if (serport_verifyCrc(data) == false) {
                 throw new Error(`CRC failed during read of address ${adr}`);
