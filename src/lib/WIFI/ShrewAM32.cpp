@@ -42,7 +42,7 @@ void am32_freeStruct(am32_request_t* x);
 void am32_hexDecode(const char* str, uint8_t* outbuf, int len);
 extern void WebUpdateSendContent(AsyncWebServerRequest *request);
 extern void servos_singleWrite(int selected_pin, int us);
-extern void servos_singleInit(int selected_pin);
+extern bool servos_singleInit(int selected_pin);
 extern void servos_deinitAll();
 
 void am32_handleIo(AsyncWebServerRequest *request)
@@ -187,13 +187,14 @@ void am32_handleIo(AsyncWebServerRequest *request)
             }
         case AM32_ACTION_WRITE:
             {
+                Serial.flush();
                 am32_setPinMode(req_data.pin, true);
                 // note: 515 microseconds for one byte at 19200 baud, from start bit to end of stop bit
                 // note: 468 microseconds for one byte at 19200 baud, from start bit to start of stop bit
                 // uart_wait_tx_done doesn't return fast enough, the AM32 bootloader attempts to reply but the first byte is being cut off
                 // so my solution is to just calculate how much time it should take for the packet to be sent
                 uint64_t ts = esp_timer_get_time();
-                uint64_t deadline = ts + (515 * req_data.buffer1_len) + 150;
+                uint64_t deadline = ts + (520 * req_data.buffer1_len) + 26;
                 for (int j = 0; j < req_data.buffer1_len; j++) {
                     Serial.write((uint8_t)req_data.buffer1[j]);
                 }
@@ -206,7 +207,7 @@ void am32_handleIo(AsyncWebServerRequest *request)
                         delayMicroseconds(req_data.delay);
                     }
                     ts = esp_timer_get_time();
-                    deadline = ts + (515 * req_data.buffer2_len) + 150;
+                    deadline = ts + (520 * req_data.buffer2_len) + 26;
                     for (int j = 0; j < req_data.buffer2_len; j++) {
                         Serial.write((uint8_t)req_data.buffer2[j]);
                     }
@@ -233,11 +234,18 @@ void am32_handleIo(AsyncWebServerRequest *request)
                 test_mode_started = true;
                 pinMatrixOutDetach(req_data.pin, false, false);
                 pinMatrixInDetach(req_data.pin, false, false);
+                Serial.end();
                 pinMode(req_data.pin, OUTPUT);
                 digitalWrite(req_data.pin, LOW);
                 servos_deinitAll();
-                servos_singleInit(req_data.pin);
-                default_response = true;
+                if (servos_singleInit(req_data.pin)) {
+                    default_response = true;
+                }
+                else {
+                    AsyncResponseStream *response = request->beginResponseStream("text/plain");
+                    response->write("error", 5);
+                    request->send(response);
+                }
             }
             break;
         case AM32_ACTION_TEST_SIGNAL:
@@ -269,6 +277,9 @@ void am32_setPinMode(int pin, bool isTx)
 {
     if (isTx)
     {
+        //digitalWrite(pin, HIGH);
+        //pinMode(pin, OUTPUT);
+        //digitalWrite(pin, HIGH);
         //pinMatrixInDetach(pin, true, false);
         pinMatrixOutAttach(pin, U0TXD_OUT_IDX, false, false);
     }

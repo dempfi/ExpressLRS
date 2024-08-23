@@ -331,7 +331,7 @@ function txt_onchange(i)
         if (i == text_to_id(sld[0]))
         {
             let v = getEleById("txt_" + text_to_id(sld[0])).value;
-            v = Math.max(sld[3], Math.min(sld[2], v));
+            v = Math.max(sld[2], Math.min(sld[3], v));
             getEleById("sld_" + text_to_id(sld[0])).value = v;
         }
     }
@@ -349,7 +349,7 @@ function sld_onchange(i)
         if (i == text_to_id(sld[0]))
         {
             let v = getEleById("sld_" + text_to_id(sld[0])).value;
-            v = Math.max(sld[3], Math.min(sld[2], v));
+            v = Math.max(sld[2], Math.min(sld[3], v));
             getEleById("txt_" + text_to_id(sld[0])).value = v;
         }
     }
@@ -473,11 +473,18 @@ function readBin(barr, isFile)
                     val = Math.min(sld[3], Math.max(sld[2], val));
                 }
                 elet.value = val;
-                txt_onchange(i);
+                eles.value = val;
+                txt_onchange(text_to_id(sld[0]));
             }
 
             let drop_rcinput = getEleById("drop_rcinput");
-            drop_rcinput.value = "x_" + barr[46].toString();
+            if (barr[46] >= 0 && barr[46] < 10) {
+                drop_rcinput.value = "x_" + barr[46].toString();
+            }
+            else {
+                dbg_txt += "RC input value " + barr[46] + " is out of range\r\n";
+                drop_rcinput.value = "x_0";
+            }
 
             let txt_devicename = getEleById("txt_devicename");
             let dev_name = "";
@@ -695,10 +702,11 @@ function toHexString(x)
     }
     for (let y of x)
     {
-        hex += y.toString(16);
-        while ((hex.length % 2) != 0) {
-            hex = "0" + hex;
+        let hex8 = y.toString(16);
+        while ((hex8.length % 2) != 0) {
+            hex8 = "0" + hex8;
         }
+        hex += hex8;
     }
     return hex.toUpperCase();
 }
@@ -949,7 +957,7 @@ async function serport_ajax_flashRead(start_addr, read_len, chunk_size, addr_mul
                 throw new Error(`CRC failed during read of address ${adr}`);
             }
             let actual_data = data.slice(0, -3);
-            buffer.concat(actual_data);
+            buffer = buffer.concat(actual_data);
         }
         if (timedout)
         {
@@ -975,7 +983,11 @@ async function serport_ajax_flashWrite(contents, start_addr, write_len, chunk_si
     {
         let data = await serport_ajax("send set address", srvaction_ser_write, serport_lastpin, serport_genSetAddressCmd(adr / addr_multi));
         await serport_ajax_readAck("set address");
-        data = await serport_ajax("send buffer", srvaction_ser_write, serport_lastpin, serport_genSetBufferCmd(0, chunk_size), 800, serport_genPayload(contents, i, chunk_size));
+        let this_chunk_size = chunk_size;
+        if (i + this_chunk_size >= write_len) {
+            this_chunk_size = write_len - i;
+        }
+        data = await serport_ajax("send buffer", srvaction_ser_write, serport_lastpin, serport_genSetBufferCmd(0, this_chunk_size), 800, serport_genPayload(contents, i, this_chunk_size));
         await serport_ajax_readAck("send buffer");
         data = await serport_ajax("flash cmd", srvaction_ser_write, serport_lastpin, serport_genFlashCmd());
         await serport_ajax_readAck("flash cmd");
@@ -1017,6 +1029,8 @@ async function btn_connect_onclick_a()
         await new Promise(resolve => setTimeout(resolve, 200));
         pin_been_tried[pinnum] = true;
 
+        let mcu = null;
+
         for (let attempt = 3; attempt > 0; attempt--)
         {
             try
@@ -1027,7 +1041,8 @@ async function btn_connect_onclick_a()
                     throw new Error(`signature bytes are too short (or timed-out reading signature), ESC is likely not connected or not responding.`);
                 }
                 console.log("signature bytes: " + signature_bytes);
-                let mcu = null;
+
+                mcu = null;
                 for (let m of mcu_data)
                 {
                     let sig = m["signature"];
@@ -1127,8 +1142,18 @@ async function btn_serwrite_onclick_a()
     let data;
     let pinnum = getEleById("drop_selpin").value;
     if (!isRunningLocally()) {
+        if (pin_been_tried[pinnum] == false) {
+            data = await serport_ajax("setting pin low", srvaction_pin_low, pinnum);
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            data = await serport_ajax("setting pin high", srvaction_pin_high);
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            data = await serport_ajax("init serial port", srvaction_ser_init);
+            await new Promise(resolve => setTimeout(resolve, 200));
+        }
+
         let eeprom_bin = generateBin();
         await serport_ajax_flashWrite(eeprom_bin, current_chip["mcu"]["eeprom_start"], eeprom_total_length, flash_write_chunk, current_chip["mcu"]["addr_multi"]);
+        console.log("eeprom write done, begin verification read");
         data = await serport_ajax_flashRead(current_chip["mcu"]["eeprom_start"], eeprom_total_length, flash_write_chunk, current_chip["mcu"]["addr_multi"]);
         for (let i = 0; i < eeprom_total_length && i < eeprom_bin.length; i++) {
             if (eeprom_bin[i] != data[i]) {
@@ -1136,6 +1161,7 @@ async function btn_serwrite_onclick_a()
             }
         }
         register_test_params();
+        pin_been_tried[pinnum] = true;
     }
     else {
         console.log("pretending to send to pin " + pinnum);
@@ -1361,53 +1387,58 @@ let testesc_tickrate = 20;
 function register_test_params()
 {
     // immediately after a read of the ESC or a write to the ESC, remember what kind of idle pulse setting is best
-
-    // fist step is to see if the pin being used is configured for PWM/PPM or DSHOT
-    // scan the text of the dropdown selected element
-    const dropdown = getEleById("drop_selpin");
-    if (!dropdown) {
-        testesc_idleval = null;
-        return;
-    }
-    const value = dropdown.value;
-    let pin_text = null;
-
-    const options = dropdown.options;
-    for (let i = 0; i < options.length; i++) {
-        if (options[i].value === value) {
-            pin_text = options[i].text;
+    try
+    {
+        // fist step is to see if the pin being used is configured for PWM/PPM or DSHOT
+        // scan the text of the dropdown selected element
+        const dropdown = getEleById("drop_selpin");
+        if (!dropdown) {
+            testesc_idleval = null;
+            return;
         }
-    }
+        const value = dropdown.value;
+        let pin_text = null;
 
-    if (pin_text == null) {
-        console.log("cannot determine pin for testing ESC, pin not selected");
-        testesc_idleval = null;
-        return;
-    }
-    if (pin_text.startsWith("SER")) {
-        // cannot test ESC if a serial TX pin is being used
-        testesc_idleval = null;
-        return;
-    }
+        const options = dropdown.options;
+        for (let i = 0; i < options.length; i++) {
+            if (options[i].value === value) {
+                pin_text = options[i].text;
+            }
+        }
 
-    let is_bidir = getEleById("chk_bidirectional").checked;
-    if (pin_text.startsWith("DSHOT")) {
-        // with DSHOT, AM32 completely ignores the "servo neutral" setting
-        if (is_bidir) {
-            testesc_idleval = 1500;
+        if (pin_text == null) {
+            console.log("cannot determine pin for testing ESC, pin not selected");
+            testesc_idleval = null;
+            return;
+        }
+        if (pin_text.startsWith("SER")) {
+            // cannot test ESC if a serial TX pin is being used
+            testesc_idleval = null;
+            return;
+        }
+
+        let is_bidir = getEleById("chk_bidirectional").checked;
+        if (pin_text.startsWith("DSHOT")) {
+            // with DSHOT, AM32 completely ignores the "servo neutral" setting
+            if (is_bidir) {
+                testesc_idleval = 1500;
+            }
+            else {
+                testesc_idleval = 1000;
+            }
         }
         else {
-            testesc_idleval = 1000;
+            // with traditional PPM, AM32 will use the "servo neutral" and "servo low threshold" values as configured or calibrated
+            if (is_bidir) {
+                testesc_idleval = parseInt(getEleById("txt_servoneutral").value);
+            }
+            else {
+                testesc_idleval = parseInt(getEleById("txt_servolowthresh").value);;
+            }
         }
     }
-    else {
-        // with traditional PPM, AM32 will use the "servo neutral" and "servo low threshold" values as configured or calibrated
-        if (is_bidir) {
-            testesc_idleval = parseInt(getEleById("txt_servoneutral").value);
-        }
-        else {
-            testesc_idleval = parseInt(getEleById("txt_servolowthresh").value);;
-        }
+    catch (e) {
+        console.log("error in function \"register_test_params\": " + e.toString());
     }
 }
 
@@ -1468,9 +1499,18 @@ async function testesc_start()
     try {
     getEleById('sld_testvalue').value = testesc_idleval;
     if (!isRunningLocally()) {
-        let pinnum = parseInt(getEleById("drop_selpin"));
+        let pinnum = parseInt(getEleById("drop_selpin").value);
         pin_been_tried[pinnum] = false;
-        await serport_ajax("starting test", srvaction_test_start, pinnum);
+        let resp = await serport_ajax("starting test", srvaction_test_start, pinnum);
+        if (resp != "ok") {
+            cuteAlert({
+                type: 'error',
+                title: 'Error',
+                message: 'unable to start test, cannot initialize pin'
+            });
+            testesc_stop();
+            return;
+        }
     }
     else {
         testesc_tickrate = 200;

@@ -331,8 +331,9 @@ void servos_deinitAll()
     #endif
 }
 
-void servos_singleInit(int selected_pin)
+bool servos_singleInit(int selected_pin)
 {
+    bool res = false;
 #if defined(PLATFORM_ESP32)
     uint8_t rmtCH = 0;
 #endif
@@ -353,7 +354,7 @@ void servos_singleInit(int selected_pin)
         }
 #endif
         // Mark servo pins that are being used for serial (or other purposes) as disconnected
-        auto mode = (eServoOutputMode)config.GetPwmChannel(ch)->val.mode;
+        auto mode = (eServoOutputMode)chConfig->val.mode;
         if (mode >= somSerial)
         {
             pin = UNDEF_PIN;
@@ -370,6 +371,7 @@ void servos_singleInit(int selected_pin)
                 dshotInstances[ch] = new DShotRMT(gpio, rmtChannel); // Initialize the DShotRMT instance
                 dshotInstances[ch]->begin(DSHOT300, false);
                 servoWrite(ch, 0);
+                res = true;
                 rmtCH++;
             }
             pin = UNDEF_PIN;
@@ -387,10 +389,12 @@ void servos_singleInit(int selected_pin)
                 {
                     pwmChannels[ch] = PWM.allocate(servoPins[ch], frequency);
                     servoWrite(ch, 0);
+                    res = true;
                 }
             }
         }
     }
+    return res;
 }
 
 void servos_singleWrite(int selected_pin, int us)
