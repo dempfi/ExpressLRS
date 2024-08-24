@@ -137,8 +137,12 @@ static int timeout()
 #endif
 
     unsigned int idx = vbatSmooth.add(adc);
-    if (idx == 0 && connectionState == connected)
+    if (idx == 0 && connectionState == connected) {
         reportVbat();
+    }
+    else {
+        calcVbat();
+    }
 
     return VBAT_SAMPLE_INTERVAL * vbatUpdateScale;
 }

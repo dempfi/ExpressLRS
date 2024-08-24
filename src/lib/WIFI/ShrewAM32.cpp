@@ -187,6 +187,7 @@ void am32_handleIo(AsyncWebServerRequest *request)
             }
         case AM32_ACTION_WRITE:
             {
+                uint32_t total_bytes = req_data.buffer1_len + req_data.buffer2_len;
                 Serial.flush();
                 am32_setPinMode(req_data.pin, true);
                 // note: 515 microseconds for one byte at 19200 baud, from start bit to end of stop bit
@@ -198,9 +199,13 @@ void am32_handleIo(AsyncWebServerRequest *request)
                 for (int j = 0; j < req_data.buffer1_len; j++) {
                     Serial.write((uint8_t)req_data.buffer1[j]);
                 }
-                //uart_wait_tx_done(0, pdMS_TO_TICKS(100));
-                while (esp_timer_get_time() < deadline) {
-                    // do nothing
+                if (total_bytes >= 24) {
+                    uart_wait_tx_done(0, pdMS_TO_TICKS(100));
+                }
+                else {
+                    while (esp_timer_get_time() < deadline) {
+                        // do nothing
+                    }
                 }
                 if (req_data.buffer2_len > 0) {
                     if (req_data.delay > 0) {
@@ -211,15 +216,18 @@ void am32_handleIo(AsyncWebServerRequest *request)
                     for (int j = 0; j < req_data.buffer2_len; j++) {
                         Serial.write((uint8_t)req_data.buffer2[j]);
                     }
-                    //uart_wait_tx_done(0, pdMS_TO_TICKS(100));
-                    while (esp_timer_get_time() < deadline) {
-                        // do nothing
+                    if (total_bytes >= 24) {
+                        uart_wait_tx_done(0, pdMS_TO_TICKS(100));
+                    }
+                    else {
+                        while (esp_timer_get_time() < deadline) {
+                            // do nothing
+                        }
                     }
                 }
                 am32_setPinMode(req_data.pin, false);
 
                 // I have no idea why there's an echo of the TX in the RX buffer, but clear it out
-                uint32_t total_bytes = req_data.buffer1_len + req_data.buffer2_len;
                 for (int j = 0; j < total_bytes; j++) {
                     if (Serial.available() > 0) {
                         Serial.read();

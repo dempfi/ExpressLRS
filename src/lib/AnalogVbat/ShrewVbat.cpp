@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include <math.h>
 
+#include "common.h"
+#include "options.h"
+
 #ifdef BUILD_SHREW_ADCLUT
 
 #define vbat_float_t double
@@ -40,6 +43,8 @@ static const tbl_entry_t lut[] = {
     #endif
 };
 
+uint16_t shrew_last_vbat = 0;
+
 static vbat_float_t shrewvbat_interpolate(const tbl_entry_t* table, int size, uint16_t x) {
     int i = 0;
     for (i = 0; i < size - 1; i++) {
@@ -66,7 +71,24 @@ static vbat_float_t shrewvbat_interpolate(const tbl_entry_t* table, int size, ui
 int32_t shrewvbat_get(uint32_t x) {
     int lut_size = sizeof(lut) / sizeof(tbl_entry_t);
     vbat_float_t y = shrewvbat_interpolate(lut, lut_size, x);
-    return (uint32_t)vbat_float_round(y);
+    shrew_last_vbat = (uint32_t)vbat_float_round(y);
+    return shrew_last_vbat;
 }
 
+bool shrewvbat_canWifi() {
+    if (shrew_last_vbat < 5800) {
+        return true;
+    }
+    #ifdef BUILD_SHREW_HBRIDGE
+    if (firmwareOptions.shrew == 1 || firmwareOptions.shrew == 3) {
+        return false;
+    }
+    #endif
+    return true;
+}
+
+#else
+bool shrewvbat_canWifi() {
+    return true;
+}
 #endif

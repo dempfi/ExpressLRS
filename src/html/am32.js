@@ -909,13 +909,15 @@ async function serport_ajax(msg, action, pinnum, tx_data, delay, tx_data2) {
 
 async function serport_ajax_read(num_bytes, total_time) {
     let buffer = [];
-    for (let i = 0; i < total_time; i += 100) {
+    for (let i = 0; i < total_time; i += 50) {
         let chunk = await serport_ajax("read", srvaction_ser_read);
         buffer = buffer.concat(chunk);
         if (buffer.length >= num_bytes) {
             break;
         }
-        await new Promise(resolve => setTimeout(resolve, 100));
+        if (chunk.length <= 0) {
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
     }
     return buffer;
 }
@@ -928,12 +930,12 @@ async function serport_ajax_readAck(msg) {
         }
     }
     if (msg !== undefined) {
-        throw new Error(`did not get ACK for "${msg}", reply was 0x${b[0].toString(16)}`);
+        throw new Error(`did not get ACK for "${msg}", reply was 0x${toHexString(b[0])}`);
     }
     return false;
 }
 
-async function serport_ajax_flashRead(start_addr, read_len, chunk_size, addr_multi)
+async function serport_ajax_flashRead(start_addr, read_len, chunk_size, addr_multi, is_fwupdate)
 {
     let buffer = [];
     let adr = start_addr;
@@ -942,6 +944,7 @@ async function serport_ajax_flashRead(start_addr, read_len, chunk_size, addr_mul
         let data = await serport_ajax("send set address", srvaction_ser_write, serport_lastpin, serport_genSetAddressCmd(adr / addr_multi));
         await serport_ajax_readAck("set address");
         data = await serport_ajax("send read cmd", srvaction_ser_write, serport_lastpin, serport_genReadCmd(chunk_size));
+        await new Promise(resolve => setTimeout(resolve, 50));
         let reply_size = chunk_size + 3;
         data = await serport_ajax_read(reply_size, 1000);
         let timedout = false;
@@ -964,13 +967,19 @@ async function serport_ajax_flashRead(start_addr, read_len, chunk_size, addr_mul
             return buffer;
         }
         adr += chunk_size;
-        let percentage = Math.max(0, Math.min(100, Math.round(buffer.length * 100 / read_len)));
-        getEleById("div_progress").innerHTML = `Verifying... ${percentage}% complete`;
+        let percentage;
+        if (is_fwupdate) {
+            percentage = 50 + Math.max(0, Math.min(50, Math.round(buffer.length * 50 / read_len)));
+        }
+        else {
+            percentage = Math.max(0, Math.min(100, Math.round(buffer.length * 100 / read_len)));
+        }
+        getEleById("div_progress").innerHTML = `Verifying... ${percentage}% (${buffer.length} / ${read_len} - 0x${toHexString(adr)})`;
     }
     return buffer;
 }
 
-async function serport_ajax_flashWrite(contents, start_addr, write_len, chunk_size, addr_multi)
+async function serport_ajax_flashWrite(contents, start_addr, write_len, chunk_size, addr_multi, is_fwupdate)
 {
     let buffer = [];
     let i = 0;
@@ -981,20 +990,42 @@ async function serport_ajax_flashWrite(contents, start_addr, write_len, chunk_si
     }
     while (i < write_len)
     {
-        let data = await serport_ajax("send set address", srvaction_ser_write, serport_lastpin, serport_genSetAddressCmd(adr / addr_multi));
-        await serport_ajax_readAck("set address");
-        let this_chunk_size = chunk_size;
-        if (i + this_chunk_size >= write_len) {
-            this_chunk_size = write_len - i;
+        let retries = 3;
+        while (retries > 0)
+        {
+            retries -= 1;
+            try
+            {
+                let data = await serport_ajax("send set address", srvaction_ser_write, serport_lastpin, serport_genSetAddressCmd(adr / addr_multi));
+                await serport_ajax_readAck("set address");
+                let this_chunk_size = chunk_size;
+                if (i + this_chunk_size >= write_len) {
+                    this_chunk_size = write_len - i;
+                }
+                data = await serport_ajax("send buffer", srvaction_ser_write, serport_lastpin, serport_genSetBufferCmd(0, this_chunk_size), 800, serport_genPayload(contents, i, this_chunk_size));
+                await serport_ajax_readAck("send buffer");
+                data = await serport_ajax("flash cmd", srvaction_ser_write, serport_lastpin, serport_genFlashCmd());
+                await serport_ajax_readAck("flash cmd");
+                break;
+            }
+            catch (e) {
+                console.log("flash write error: " + e.toString());
+                if (retries <= 0) {
+                    throw e;
+                }
+            }
         }
-        data = await serport_ajax("send buffer", srvaction_ser_write, serport_lastpin, serport_genSetBufferCmd(0, this_chunk_size), 800, serport_genPayload(contents, i, this_chunk_size));
-        await serport_ajax_readAck("send buffer");
-        data = await serport_ajax("flash cmd", srvaction_ser_write, serport_lastpin, serport_genFlashCmd());
-        await serport_ajax_readAck("flash cmd");
+
         i += chunk_size;
         adr += chunk_size;
-        let percentage = Math.max(0, Math.min(100, Math.round(i * 100 / write_len)));
-        getEleById("div_progress").innerHTML = `Flash Writing... ${percentage}% complete`;
+        let percentage;
+        if (is_fwupdate) {
+            percentage = Math.max(0, Math.min(50, Math.round(i * 50 / write_len)));
+        }
+        else {
+            percentage = Math.max(0, Math.min(100, Math.round(i * 100 / write_len)));
+        }
+        getEleById("div_progress").innerHTML = `Flash Writing... ${percentage}% (${i} / ${write_len} - 0x${toHexString(adr)})`;
     }
 }
 
@@ -1055,7 +1086,7 @@ async function btn_connect_onclick_a()
                     throw new Error(`signature bytes do not have a match, the ESC is not responding correctly.`);
                 }
 
-                data = await serport_ajax_flashRead(mcu["eeprom_start"], eeprom_total_length, flash_write_chunk, mcu["addr_multi"]);
+                data = await serport_ajax_flashRead(mcu["eeprom_start"], eeprom_total_length, flash_write_chunk, mcu["addr_multi"], false);
                 readBin(data, false);
                 break;
             }
@@ -1154,7 +1185,7 @@ async function btn_serwrite_onclick_a()
         let eeprom_bin = generateBin();
         await serport_ajax_flashWrite(eeprom_bin, current_chip["mcu"]["eeprom_start"], eeprom_total_length, flash_write_chunk, current_chip["mcu"]["addr_multi"]);
         console.log("eeprom write done, begin verification read");
-        data = await serport_ajax_flashRead(current_chip["mcu"]["eeprom_start"], eeprom_total_length, flash_write_chunk, current_chip["mcu"]["addr_multi"]);
+        data = await serport_ajax_flashRead(current_chip["mcu"]["eeprom_start"], eeprom_total_length, flash_write_chunk, current_chip["mcu"]["addr_multi"], false);
         for (let i = 0; i < eeprom_total_length && i < eeprom_bin.length; i++) {
             if (eeprom_bin[i] != data[i]) {
                 throw new Error(`write verification failed at index ${i}`);
@@ -1212,8 +1243,8 @@ async function fwupdate_data(content)
     let pinnum = getEleById("drop_selpin").value;
     if (!isRunningLocally()) {
         let flash_length = current_chip["mcu"]["eeprom_start"] - current_chip["mcu"]["flash_start"];
-        await serport_ajax_flashWrite(content, current_chip["mcu"]["flash_start"], flash_length, flash_write_chunk, current_chip["mcu"]["addr_multi"]);
-        data = await serport_ajax_flashRead(current_chip["mcu"]["flash_start"], flash_length, flash_write_chunk, current_chip["mcu"]["addr_multi"]);
+        await serport_ajax_flashWrite(content, current_chip["mcu"]["flash_start"], flash_length, flash_write_chunk, current_chip["mcu"]["addr_multi"], true);
+        data = await serport_ajax_flashRead(current_chip["mcu"]["flash_start"], flash_length, flash_write_chunk, current_chip["mcu"]["addr_multi"], true);
         for (let i = 0; i < content.length; i++) {
             if (content[i] != data[i]) {
                 throw new Error(`write verification failed at index ${i}`);
