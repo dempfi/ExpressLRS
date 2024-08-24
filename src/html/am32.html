@@ -27,7 +27,7 @@ function inline_loader_ondone() {
         <fieldset>
             <label for="drop_selpin">Select the pin:</label>
             <select id="drop_selpin" name="drop_selpin"></select>
-            <input type="button" id="btn_connect" value="Connect and Read" onclick="btn_connect_onclick()" /><input type="button" id="btn_serwrite" value="Write to ESC" onclick="btn_serwrite_onclick()" />
+            <input type="button" id="btn_connect" value="Connect and Read" onclick="btn_connect_onclick()" /><input type="button" id="btn_serwrite" value="Write to ESC" onclick="btn_serwrite_onclick()" /><span id="span_pleasewait" style="display:none;">Please Wait...</span>
         </fieldset>
     </div>
     <div id="div_maincontent" style="display: none;">
@@ -100,12 +100,12 @@ function inline_loader_ondone() {
             <div style="display: table-row-group;">
                 <div style="display: table-row;">
                     <div style="display: table-cell; width: 50%;">
-                        <fieldset><legend>Open *.BIN File</legend>
+                        <fieldset><legend>Open Cfg File</legend>
                             <input type="file" id="btn_readbinfile" />
                         </fieldset>
                     </div>
                     <div style="display: table-cell;">
-                        <fieldset><legend>Save *.BIN File</legend>
+                        <fieldset><legend>Save Cfg File</legend>
                             <input type="button" value="Save" onclick="saveBinFile()" />&nbsp;<input type="text" value="" id="txt_savefname" placeholder="optional name" />
                         </fieldset>
                     </div>
@@ -114,6 +114,7 @@ function inline_loader_ondone() {
         </div>
         <fieldset id="fld_fwupdate"><legend>FW Update (*.HEX file)</legend>
             <div><input type="file" id="btn_fwupdate" /></div>
+            <div style="font-size: 8pt;"><b>WARNING: </b> this can take many minutes, please ensure that your power is stable, Wi-Fi connection is reliable, and your computer/phone does not go to sleep.</div>
             <div id="div_progress"></div>
         </fieldset>
     </div>

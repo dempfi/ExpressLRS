@@ -451,17 +451,28 @@ function readBin(barr, isFile)
 
         if (skip_form_fill == false)
         {
+            let allow_extras;
+            //allow_extras = getEleById("chk_experimentalupgrade").checked;
+            allow_extras = current_chip["eeprom_layout"] >= 5 && current_chip["fw_version_major"] >= 3;
+            let extras_bidx = extra_checkboxes[0][2];
             for (let i = 0; i < all_checkboxes.length; i++)
             {
                 let c = all_checkboxes[i];
+                let bidx = c[2];
+                if (bidx >= extras_bidx && allow_extras == false) {
+                    continue;
+                }
                 let ele = getEleById("chk_" + text_to_id(c[0]));
-                ele.checked = barr[c[2]] != 0;
+                ele.checked = barr[bidx] != 0;
             }
 
             for (let i = 0; i < all_sliders.length; i++)
             {
                 let sld = all_sliders[i];
                 let bidx = sld[6];
+                if (bidx >= extras_bidx && allow_extras == false) {
+                    continue;
+                }
                 let eles = getEleById("sld_" + text_to_id(sld[0]));
                 let elet = getEleById("txt_" + text_to_id(sld[0]));
                 let val = barr[bidx];
@@ -925,7 +936,7 @@ async function serport_ajax_read(num_bytes, total_time) {
 async function serport_ajax_readAck(msg) {
     let b = await serport_ajax_read(1, 1000);
     if (b.length == 1) {
-        if (b[0] == 0x30) {
+        if (b[0] == 0x30 || b[0] == 0x98) {
             return true;
         }
     }
@@ -1047,6 +1058,7 @@ async function btn_connect_onclick_a()
     getEleById("btn_connect").disabled = true;
     getEleById("btn_serwrite").disabled = true;
     getEleById("btn_fwupdate").disabled = true;
+    getEleById("span_pleasewait").style.display = "inline";
     let data;
     let pinnum = getEleById("drop_selpin").value;
     if (!isRunningLocally()) {
@@ -1071,7 +1083,7 @@ async function btn_connect_onclick_a()
                 if (signature_bytes.length < 9) {
                     throw new Error(`signature bytes are too short (or timed-out reading signature), ESC is likely not connected or not responding.`);
                 }
-                console.log("signature bytes: " + signature_bytes);
+                console.log("signature bytes: " + toHexString(signature_bytes));
 
                 mcu = null;
                 for (let m of mcu_data)
@@ -1143,6 +1155,7 @@ async function btn_connect_onclick_a()
         });
     }
 
+    getEleById("span_pleasewait").style.display = "none";
     getEleById("drop_selpin").disabled = false;
     getEleById("btn_connect").disabled = false;
     testesc_stop();
@@ -1224,6 +1237,7 @@ async function btn_serwrite_onclick_a()
 
 async function fwupdate_data(content)
 {
+    let success = false;
     try
     {
     getEleById("div_progress").style.display = "none";
@@ -1259,6 +1273,7 @@ async function fwupdate_data(content)
         getEleById("div_progress").style.display = "none";
     }
 
+    success = true;
     cuteAlert({
         type: 'success',
         title: 'Finished',
@@ -1280,9 +1295,25 @@ async function fwupdate_data(content)
     getEleById("drop_selpin").disabled = false;
     getEleById("btn_connect").disabled = false;
     getEleById("btn_fwupdate").disabled = false;
+    return success;
 }
 
 let fwupdate_filename = null;
+let wakelock;
+const canWakeLock = () => 'wakeLock' in navigator;
+
+async function lockWakeState() {
+    if (!canWakeLock()) return;
+    try {
+        wakelock = await navigator.wakeLock.request();
+        wakelock.addEventListener('release', () => {
+            console.log('Screen Wake State Locked:', !wakelock.released);
+        });
+        console.log('Screen Wake State Locked:', !wakelock.released);
+    } catch (e) {
+        console.error('Failed to lock wake state with reason:', e.message);
+    }
+}
 
 function fwupdate(e)
 {
@@ -1305,6 +1336,9 @@ function fwupdate(e)
         });
         return;
     }
+
+    lockWakeState();
+
     fwupdate_filename = file.name;
     var reader = new FileReader();
     reader.onload = function(e) {
@@ -1338,62 +1372,70 @@ function fwupdate(e)
             let end_addr = start_addr + total_len;
             let fwArr = memMap.slicePad(start_addr, total_len);
             console.log("writing from 0x" + toHexString(start_addr) + " , len = 0x" + toHexString(total_len) + " (" + total_len + ") , ending at 0x" + toHexString(end_addr));
-            fwupdate_data(fwArr);
-
-            if (current_chip != null && need_read_again == false) {
-                // V2 and V3 firmware do not contain the firmware_info_s structure metadata
-                // so I've resorted to simply checking the file name to see if an upgrade is being performed
-                let is_experimental = 0;
-                let regex = /v(\d+)/i;
-                let match = fwupdate_filename.match(regex);
-                if (match) {
-                    let number = parseInt(match[1], 10);
-                    if (number >= 3) {
-                        is_experimental = number;
-                    }
+            fwupdate_data(fwArr).then(result => {
+                if (result == false) {
+                    getEleById("btn_fwupdate").value = "";
+                    return;
                 }
-                if (current_chip.hasOwnProperty("eeprom_0") && (current_chip["eeprom_0"] == 0 || current_chip["eeprom_0"] == 0xFF)) {
-                    cuteAlert({
-                        type: 'question',
-                        title: 'Write EEPROM?',
-                        message: `EEPROM appears blank, it's recommended that you immediate fill it with some data first`,
-                        confirmText: 'Yes write EEPROM',
-                        cancelText: 'No'
-                    }).then((e)=>{
-                        if (is_experimental > 0) {
-                            getEleById("chk_experimentalupgrade").checked = true;
-                        }
-                        btn_serwrite_onclick();
-                    });
-                }
-                else if (is_experimental > 0 && (current_chip["eeprom_layout"] < 5 || current_chip["fw_version_major"] < 3)) {
-                    let regex = /v(\d+)/i;
+                if (current_chip != null && need_read_again == false) {
+                    // V2 and V3 firmware do not contain the firmware_info_s structure metadata
+                    // so I've resorted to simply checking the file name to see if an upgrade is being performed
+                    let is_experimental = 0;
+                    let regex = /[v_\-](\d+)/i;
                     let match = fwupdate_filename.match(regex);
                     if (match) {
                         let number = parseInt(match[1], 10);
                         if (number >= 3) {
-                            cuteAlert({
-                                type: 'question',
-                                title: 'Upgrade EEPROM?',
-                                message: `New file appears to be version ${is_experimental}, but ESC is reporting an older version ${current_chip["fw_version_major"]} (layout version ${current_chip["eeprom_layout"]}), you might need to upgrade the EEPROM version or else the ESC will not work.`,
-                                confirmText: 'Yes Upgrade',
-                                cancelText: 'No'
-                            }).then((e)=>{
-                                getEleById("chk_experimentalupgrade").checked = true;
-                                btn_serwrite_onclick();
-                            });
+                            is_experimental = number;
                         }
                     }
+                    if (current_chip.hasOwnProperty("eeprom_0") && (current_chip["eeprom_0"] == 0 || current_chip["eeprom_0"] == 0xFF)) {
+                        cuteAlert({
+                            type: 'question',
+                            title: 'Write EEPROM?',
+                            message: `EEPROM appears blank, it's recommended that you immediate fill it with some data first`,
+                            confirmText: 'Yes write EEPROM',
+                            cancelText: 'No'
+                        }).then((e)=>{
+                            if (is_experimental > 0) {
+                                getEleById("chk_experimentalupgrade").checked = true;
+                                chk_experimentalupgrade_onchange();
+                            }
+                            btn_serwrite_onclick();
+                        });
+                    }
+                    else if (is_experimental > 0 && (current_chip["eeprom_layout"] < 5 || current_chip["fw_version_major"] < 3)) {
+                        cuteAlert({
+                            type: 'question',
+                            title: 'Upgrade EEPROM?',
+                            message: `New file appears to be version ${is_experimental}, but ESC is reporting an older version ${current_chip["fw_version_major"]} (layout version ${current_chip["eeprom_layout"]}), you might need to upgrade the EEPROM version or else the ESC will not work.`,
+                            confirmText: 'Yes Upgrade',
+                            cancelText: 'No'
+                        }).then((e)=>{
+                            getEleById("chk_experimentalupgrade").checked = true;
+                            chk_experimentalupgrade_onchange();
+                            btn_serwrite_onclick();
+                        });
+                    }
                 }
-            }
-            else if (need_read_again)
-            {
+                else if (need_read_again)
+                {
+                    cuteAlert({
+                        type: 'info',
+                        title: 'You should reboot',
+                        message: `The new firmware file appears to also write EEPROM data, in this case, please power-cycle the ESC, and then read it again`
+                    });
+                }
+                getEleById("btn_fwupdate").value = "";
+            }).catch(er => {
+                getEleById("div_progress").style.display = "none";
                 cuteAlert({
-                    type: 'info',
-                    title: 'You should reboot',
-                    message: `The new firmware file appears to also write EEPROM data, in this case, please power-cycle the ESC, and then read it again`
+                    type: 'error',
+                    title: 'Error During FW Update',
+                    message: er.toString()
                 });
-            }
+                console.log("error: exception while reading/sending firmware: " + er.toString());
+            });
         }
         catch (ex) {
             getEleById("div_progress").style.display = "none";
@@ -1404,7 +1446,6 @@ function fwupdate(e)
             });
             console.log("error: exception while reading/sending firmware: " + ex.toString());
         }
-        getEleById("btn_fwupdate").value = "";
     };
     reader.readAsText(file);
 }
@@ -1601,7 +1642,7 @@ async function testesc_tick_a() {
         // failsafe on no activity
         getEleById('sld_testvalue').value = testesc_idleval;
         getEleById('div_testvalue').innerHTML = testesc_idleval;
-        console.log("ESC test is idle");
+        console.log("ESC test is idle " + testesc_idleval);
     }
 
     let v = getEleById('sld_testvalue').value;
