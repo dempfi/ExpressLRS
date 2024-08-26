@@ -1022,6 +1022,7 @@ RxConfig::SetUID(uint8_t* uid)
 void
 RxConfig::SetPowerOnCounter(uint8_t powerOnCounter)
 {
+#ifndef BUILD_SHREW_DISABLE3PWRBIND
 #if defined(PLATFORM_ESP8266)
     realPowerOnCounter = powerOnCounter;
     if (powerOnCounter == 0)
@@ -1040,6 +1041,7 @@ RxConfig::SetPowerOnCounter(uint8_t powerOnCounter)
         m_config.powerOnCounter = powerOnCounter;
         m_modified = true;
     }
+#endif
 #endif
 }
 

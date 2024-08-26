@@ -24,6 +24,10 @@ static bool newChannelsAvailable;
 // Absolute max failsafe time if no update is received, regardless of LQ
 static constexpr uint32_t FAILSAFE_ABS_TIMEOUT_MS = 1000U;
 
+#ifdef BUILD_SHREW_RGBLED
+extern void shrew_updateRgbLed();
+#endif
+
 void ICACHE_RAM_ATTR servoNewChannelsAvailable()
 {
     newChannelsAvailable = true;
@@ -119,6 +123,10 @@ static void servosUpdate(unsigned long now)
     {
         newChannelsAvailable = false;
         lastUpdate = now;
+
+        #if defined(BUILD_SHREW_RGBLED) && defined(PLATFORM_ESP32)
+        shrew_updateRgbLed();
+        #endif
 
         #if defined(BUILD_SHREW_HBRIDGE) && defined(PLATFORM_ESP32)
         hbridge_update(now);

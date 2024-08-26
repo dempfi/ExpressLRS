@@ -256,8 +256,8 @@ def patch_unified(args, options):
         json_flags['shrew'] = args.shrewesc
     if args.shrewdshot is not None:
         json_flags['shrew-dshot'] = args.shrewdshot
-    if args.fixed_data_rate is not None:
-        json_flags['fixed-data-rate'] = args.fixed_data_rate
+    if args.fixed_packet_rate is not None:
+        json_flags['fixed-packet-rate'] = args.fixed_packet_rate
     if args.perm_binding is not None:
         json_flags['permanent-binding'] = args.perm_binding
 
@@ -356,7 +356,7 @@ def main():
     parser.add_argument('--permanent-binding', dest='permanent_binding', action='store_true', help='Sets permanent binding mode by default')
     parser.add_argument('--shrew', type=int, const=None, nargs='?', action='store', help='Which Shrew variant')
     parser.add_argument('--shrewdshot', dest='shrewdshot', action='store_true', help='Prefers DSHOT for PWM pins by default')
-    parser.add_argument('--fixed-data-rate', dest='fixed_data_rate', type=int, const=None, nargs='?', action='store', help='Fixed data rate')
+    parser.add_argument('--fixed-packet-rate', dest='fixed_packet_rate', type=int, const=None, nargs='?', action='store', help='Fixed packet rate')
     # TX Params
     parser.add_argument('--tlm-report', type=int, const=240, nargs='?', action='store', help='The interval (in milliseconds) between telemetry packets')
     parser.add_argument('--fan-min-runtime', type=int, const=30, nargs='?', action='store', help='The minimum amount of time the fan should run for (in seconds) if it turns on')

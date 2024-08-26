@@ -55,6 +55,10 @@ static NeoPixelBus<NeoGrbFeature, METHOD> *stripgrb;
 static NeoPixelBus<NeoRgbFeature, METHOD> *striprgb;
 #endif
 
+#ifdef BUILD_SHREW_RGBLED
+void shrew_updateRgbLed();
+#endif
+
 void WS281Binit()
 {
     if (OPT_WS2812_IS_GRB)
@@ -464,15 +468,23 @@ static int timeout()
             }
         #endif
         // Set the color and we're done!
+        #ifndef BUILD_SHREW_RGBLED
         blinkyColor.h = ExpressLRS_currAirRate_Modparams->index * 256 / RATE_MAX;
         blinkyColor.v = fmap(POWERMGNT::currPower(), 0, PWR_COUNT-1, 10, 128);
         WS281BsetLED(HsvToRgb(blinkyColor));
+        #else
+        shrew_updateRgbLed();
+        #endif
         return DURATION_NEVER;
     case tentative:
         // Set the color and we're done!
+        #ifndef BUILD_SHREW_RGBLED
         blinkyColor.h = ExpressLRS_currAirRate_Modparams->index * 256 / RATE_MAX;
-        blinkyColor.v = fmap(POWERMGNT::currPower(), 0, PWR_COUNT-1, 10, 50);
+        blinkyColor.v = fmap(POWERMGNT::currPower(), 0, PWR_COUNT-1, 10, 128);
         WS281BsetLED(HsvToRgb(blinkyColor));
+        #else
+        shrew_updateRgbLed();
+        #endif
         return DURATION_NEVER;
     case disconnected:
         #if defined(TARGET_RX)
@@ -510,5 +522,41 @@ device_t RGB_device = {
     .event = timeout,
     .timeout = timeout
 };
+
+#ifdef BUILD_SHREW_RGBLED
+
+void shrew_updateRgbLed()
+{
+    static uint32_t last_time = 0;
+    static uint32_t accum = 0;
+    static uint16_t prev[CRSF_NUM_CHANNELS];
+
+    for (int i = 0; i < CRSF_NUM_CHANNELS; i++) {
+        uint32_t cd = ChannelData[i];
+        uint32_t pd = prev[i];
+        accum += (cd >= pd) ? (cd - pd) : (pd - cd);
+        prev[i] = ChannelData[i];
+    }
+
+    uint32_t now = millis();
+    if ((now - last_time) < 100) {
+        return;
+    }
+    last_time = now;
+    if (connectionState == connected || connectionState == tentative) {
+        blinkyColor.s = 255;
+        blinkyColor.v = 128;
+        if (OPT_RGBLED_SHREWCYCLE) {
+            blinkyColor.h = (accum / 32) & 0xFF;
+        }
+        else {
+            blinkyColor.h = ExpressLRS_currAirRate_Modparams->index * 256 / RATE_MAX;
+            blinkyColor.v = fmap(POWERMGNT::currPower(), 0, PWR_COUNT-1, 10, 128);
+        }
+        WS281BsetLED(HsvToRgb(blinkyColor));
+    }
+}
+
+#endif
 
 #endif

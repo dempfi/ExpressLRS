@@ -1823,8 +1823,10 @@ static void updateBindingMode()
         // Never enter wifi if forced to binding mode
         webserverPreventAutoStart = true;
 #endif
+#ifndef BUILD_SHREW_DISABLE3PWRBIND
         DBGLN("Power on counter >=3, enter binding mode");
         EnterBindingMode();
+#endif
     }
 
     // If the eeprom is indicating that we're not bound, enter binding

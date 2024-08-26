@@ -1352,10 +1352,6 @@ static int event()
   }
   #endif
 
-  if (shrewvbat_canWifi() == false) {
-    return DURATION_IMMEDIATELY;
-  }
-
   if (connectionState == wifiUpdate || connectionState > FAILURE_STATES)
   {
     if (!wifiStarted) {

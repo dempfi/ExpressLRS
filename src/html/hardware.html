@@ -208,6 +208,7 @@ td img.icon-pwm {
 					<tr><td colspan='2'><b>Mood Lighting</td></tr>
 					<tr><td></td><td>RGB LED pin<img class="icon-output"/></td><td><input size='3' id='led_rgb' name='led_rgb' type='text'/></td><td>Signal pin for WS2812 RGB LED or LED strip</td></tr>
 					<tr><td></td><td>RGB LED is GRB</td><td><input size='3' id='led_rgb_isgrb' name='led_rgb_isgrb' type='checkbox'/></td><td>Most WS2812 RGB LEDs are actually GRB</td></tr>
+					<tr><td></td><td>RGB LED Cycle Color on Move</td><td><input size='3' id='led_rgb_shrewcycle' name='led_rgb_shrewcycle' type='checkbox'/></td><td>Change color on LED when channels are actively changing</td></tr>
 					<tr><td></td><td>RGB indexes for Status</td><td><input size='40' id='ledidx_rgb_status' name='ledidx_rgb_status' type='text' class='array'/></td><td>Indexes into the "string" of RGB LEDs (if empty then only LED at 0 is used)</td></tr>
 @@if not isTX:
 					<tr><td></td><td>RGB indexes for VTX Status</td><td><input size='40' id='ledidx_rgb_vtx' name='ledidx_rgb_vtx' type='text' class='array'/></td><td>Indexes into the "string" of RGB LEDs (if empty then no VTX status)</td></tr>

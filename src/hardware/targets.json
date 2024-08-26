@@ -5,11 +5,20 @@
             "shrewesc": {
                 "product_name": "ShrewESC RX",
                 "lua_name": "ShrewESC",
-                "layout_file": "Shrew.json",
+                "layout_file": "ShrewESC.json",
                 "upload_methods": ["uart", "wifi"],
                 "min_version": "3.4.0",
                 "platform": "esp32",
-                "firmware": "Unified_ShrewESC_2400_RX"
+                "firmware": "Unified_Shrew_2400_RX"
+            },
+            "shrewzero": {
+                "product_name": "Shrew-Zero RX",
+                "lua_name": "Shrew-Zero",
+                "layout_file": "Shrew-Zero.json",
+                "upload_methods": ["uart", "wifi"],
+                "min_version": "3.4.0",
+                "platform": "esp32",
+                "firmware": "Unified_Shrew_2400_RX"
             }
         },
         "tx_2400": {

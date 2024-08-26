@@ -71,12 +71,15 @@ static vbat_float_t shrewvbat_interpolate(const tbl_entry_t* table, int size, ui
 int32_t shrewvbat_get(uint32_t x) {
     int lut_size = sizeof(lut) / sizeof(tbl_entry_t);
     vbat_float_t y = shrewvbat_interpolate(lut, lut_size, x);
-    shrew_last_vbat = (uint32_t)vbat_float_round(y);
+    shrew_last_vbat = (uint32_t)vbat_float_round(y / 100.0);
     return shrew_last_vbat;
 }
 
 bool shrewvbat_canWifi() {
-    if (shrew_last_vbat < 5800) {
+    if (shrew_last_vbat < 58) {
+        return true;
+    }
+    if (connectionState == wifiUpdate) {
         return true;
     }
     #ifdef BUILD_SHREW_HBRIDGE
