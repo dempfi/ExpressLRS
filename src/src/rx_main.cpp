@@ -1746,7 +1746,7 @@ static void EnterBindingMode()
     }
 
     // never enter binding mode if binding is supposed to be permanent, only web UI is allowed to modify binding
-    if (config.GetBindStorage() == BINDSTORAGE_PERMANENT) {
+    if (config.GetBindStorage() == BINDSTORAGE_PERMANENT && config.GetIsBound()) {
         return;
     }
 
