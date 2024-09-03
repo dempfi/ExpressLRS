@@ -48,6 +48,8 @@
 #include "esp_task_wdt.h"
 #endif
 
+#include "shrew_testbench.h"
+
 //
 // Code encapsulated by the ARDUINO_CORE_INVERT_FIX #ifdef temporarily fixes EpressLRS issue #2609 which is caused 
 // by the Arduino core (see https://github.com/espressif/arduino-esp32/issues/9896) and fixed
@@ -2111,6 +2113,8 @@ void setup()
         #endif
         setupSerial();
         setupSerial1();
+
+        shrew_testbench();
 
         devicesRegister(ui_devices, ARRAY_SIZE(ui_devices));
         devicesInit();
