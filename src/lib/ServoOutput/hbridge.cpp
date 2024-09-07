@@ -51,6 +51,7 @@ void hbridge_init(void)
         hbridge_pin_a2 = 17;
         hbridge_pin_b1 = 13;
         hbridge_pin_b2 = 27;
+        DBGLN("hbridge pins assigned for PICO-V3");
     }
     else { // PICO-D4
         hbridge_pin_a1 = 9;
@@ -58,10 +59,12 @@ void hbridge_init(void)
         if (firmwareOptions.shrew <= 2) {
             hbridge_pin_b1 = 13;
             hbridge_pin_b2 = 27;
+            DBGLN("hbridge pins assigned for PICO-D4");
         }
         else {
             hbridge_pin_b1 = 19;
             hbridge_pin_b2 = 22;
+            DBGLN("hbridge pins assigned for PICO-D4 prototype");
         }
     }
 
