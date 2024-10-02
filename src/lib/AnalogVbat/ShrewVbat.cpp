@@ -83,8 +83,8 @@ bool shrewvbat_canWifi() {
         return true;
     }
     #ifdef BUILD_SHREW_HBRIDGE
-    if (firmwareOptions.shrew == 1 || firmwareOptions.shrew == 3) {
-        return false;
+    if (firmwareOptions.shrew == 5 || firmwareOptions.shrew == 3) {
+        //return false;
     }
     #endif
     return true;
