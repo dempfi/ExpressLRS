@@ -30,6 +30,14 @@ void hbridge_init(void)
     if (has_init) {
         return;
     }
+
+    #ifdef BUILD_SHREW_HBRIDGE_PRO
+    firmwareOptions.shrew = 2;
+    #endif
+    #ifdef BUILD_SHREW_HBRIDGE_LITE
+    firmwareOptions.shrew = 1;
+    #endif
+
     if (firmwareOptions.shrew <= 0) {
         DBGLN("hbridge not shrew");
         return;
