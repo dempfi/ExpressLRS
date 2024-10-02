@@ -127,6 +127,18 @@ static int timeout()
         return DURATION_NEVER;
     }
 
+    #if defined(PLATFORM_ESP32)
+    if (connectionState == wifiUpdate)
+    {
+        // on ESP32, ADC2 cannot be used when Wi-Fi is active
+        int8_t channel = digitalPinToAnalogChannel(GPIO_ANALOG_VBAT);
+        adc_unit_t unit = (channel > (SOC_ADC_MAX_CHANNEL_NUM - 1)) ? ADC_UNIT_2 : ADC_UNIT_1;
+        if (unit == ADC_UNIT_2) {
+            return DURATION_NEVER;
+        }
+    }
+    #endif
+
     uint32_t adc = analogRead(GPIO_ANALOG_VBAT);
 #if defined(PLATFORM_ESP32) && defined(DEBUG_VBAT_ADC)
     // When doing DEBUG_VBAT_ADC, every value is adjusted (for logging)
