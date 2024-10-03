@@ -15,7 +15,7 @@ extern void shrew_startWifi();
 extern bool shrew_hasWifiStarted();
 #endif
 
-constexpr auto RMT_TICKS_PER_US = 10;
+constexpr auto RMT_TICKS_PER_US = 4;
 
 void AutoDetect::Begin()
 {
