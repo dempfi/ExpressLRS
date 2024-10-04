@@ -9,6 +9,13 @@
 
 void shrew_appendDefaults(RxConfig* cfg, rx_config_t* rxcfg)
 {
+    #ifdef BUILD_SHREW_HBRIDGE_PRO
+    firmwareOptions.shrew = 2;
+    #endif
+    #ifdef BUILD_SHREW_HBRIDGE_LITE
+    firmwareOptions.shrew = 1;
+    #endif
+
     #if defined(GPIO_PIN_PWM_OUTPUTS)
     for (unsigned int ch = 0; ch < PWM_MAX_CHANNELS - 2; ch++)
     {
