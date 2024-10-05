@@ -1569,6 +1569,7 @@ async function testesc_start()
         return;
     }
     try {
+    testesc_errorcnt = 0;
     getEleById('sld_testvalue').value = testesc_idleval;
     if (!isRunningLocally()) {
         let pinnum = parseInt(getEleById("drop_selpin").value);
@@ -1597,6 +1598,11 @@ async function testesc_start()
     }
     catch (e) {
         console.log("failed to start test mode: " + e.toString());
+        cuteAlert({
+            type: 'error',
+            title: 'Error',
+            message: 'Exception occured when starting test mode: ' + e.toString()
+        });
         testesc_stop();
     }
 }
@@ -1629,6 +1635,8 @@ function btn_testesc_onclick() {
     }
 }
 
+let testesc_errorcnt = 0;
+
 async function testesc_tick_a() {
     if (testesc_isactive == false) {
         return;
@@ -1653,9 +1661,21 @@ async function testesc_tick_a() {
         else {
             console.log("ESC test pulse " + v);
         }
+        testesc_errorcnt = 0;
     }
     catch (e) {
         console.log("error while sending test pulse: " + e.toString());
+        testesc_errorcnt += 1;
+        if (testesc_errorcnt > 2) { // too many errors, each error actually takes quite a while, so this threshold is low
+            cuteAlert({
+                type: 'error',
+                title: 'Error',
+                message: 'Too many errors occured when trying to send test pulse data, exception message: ' + e.toString()
+            });
+            testesc_errorcnt = 0; // this will run again, prevent a second message
+            testesc_stop();
+            return;
+        }
     }
 
     setTimeout(testesc_tick, testesc_tickrate);
