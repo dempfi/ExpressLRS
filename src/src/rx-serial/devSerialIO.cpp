@@ -203,6 +203,10 @@ static int timeout(devserial_ctx_t *ctx)
     {
         return DURATION_NEVER;  // stop callbacks when doing serial update
     }
+    if (connectionState == wifiUpdate)
+    {
+        return DURATION_NEVER;  // stop callbacks when doing Wi-Fi
+    }
 
     /***
      * TODO: This contains a problem!!
